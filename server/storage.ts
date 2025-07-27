@@ -50,7 +50,11 @@ export interface IStorage {
   getOrder(id: number): Promise<Order | undefined>;
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrderStatus(id: number, status: string): Promise<Order | undefined>;
+  finalizeOrder(id: number): Promise<Order | undefined>;
   getOrdersByDate(date: string): Promise<Order[]>;
+  
+  // Chat transfer operations
+  assignConversation(conversationId: number, sellerId: string): Promise<Conversation | undefined>;
   
   // Dashboard/Analytics
   getDashboardStats(): Promise<{
@@ -58,6 +62,7 @@ export interface IStorage {
     lowStockProducts: number;
     todaySales: number;
     activeConversations: number;
+    totalSales: number;
   }>;
 }
 
@@ -234,6 +239,15 @@ export class DatabaseStorage implements IStorage {
     return order;
   }
 
+  async finalizeOrder(id: number): Promise<Order | undefined> {
+    const [order] = await db
+      .update(orders)
+      .set({ status: 'finalized', updatedAt: new Date() })
+      .where(eq(orders.id, id))
+      .returning();
+    return order;
+  }
+
   async getOrdersByDate(date: string): Promise<Order[]> {
     return await db
       .select()
@@ -242,12 +256,23 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(orders.createdAt));
   }
 
+  // Chat transfer operations
+  async assignConversation(conversationId: number, sellerId: string): Promise<Conversation | undefined> {
+    const [conversation] = await db
+      .update(conversations)
+      .set({ assignedUserId: sellerId, updatedAt: new Date() })
+      .where(eq(conversations.id, conversationId))
+      .returning();
+    return conversation;
+  }
+
   // Dashboard/Analytics
   async getDashboardStats(): Promise<{
     totalProducts: number;
     lowStockProducts: number;
     todaySales: number;
     activeConversations: number;
+    totalSales: number;
   }> {
     const today = new Date().toISOString().split('T')[0];
     
@@ -270,12 +295,17 @@ export class DatabaseStorage implements IStorage {
       .select({ count: sql<number>`count(*)` })
       .from(conversations)
       .where(eq(conversations.status, 'active'));
+
+    const [totalSalesResult] = await db
+      .select({ total: sql<number>`COALESCE(SUM(${orders.totalAmount}), 0)` })
+      .from(orders);
     
     return {
       totalProducts: totalProducts.count || 0,
       lowStockProducts: lowStockProducts.count || 0,
       todaySales: todaySalesResult.total || 0,
       activeConversations: activeConversationsResult.count || 0,
+      totalSales: totalSalesResult.total || 0,
     };
   }
 }

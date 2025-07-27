@@ -7,6 +7,9 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Message, Conversation } from "@shared/schema";
 import { MessageBubble } from "./message-bubble";
+import { ChatTransferModal } from "@/components/admin/chat-transfer-modal";
+import { FinalizeOrderModal } from "@/components/admin/finalize-order-modal";
+import { UserCheck, Package } from "lucide-react";
 
 interface ChatConversationProps {
   conversationId: number | null;
@@ -15,6 +18,8 @@ interface ChatConversationProps {
 export function ChatConversation({ conversationId }: ChatConversationProps) {
   const [messageText, setMessageText] = useState("");
   const [ws, setWs] = useState<WebSocket | null>(null);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -93,6 +98,23 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
     }
   };
 
+  // Extract order items from product messages
+  const getOrderItems = () => {
+    const productMessages = messages.filter(msg => 
+      msg.messageType === 'product' && msg.metadata
+    );
+    
+    return productMessages.map(msg => {
+      const product = msg.metadata as any;
+      return {
+        productId: product.id || 0,
+        productName: product.name || 'Produto',
+        quantity: product.quantity || 1,
+        price: product.price || '0.00'
+      };
+    });
+  };
+
   if (!conversationId) {
     return (
       <div className="flex-1 flex items-center justify-center bg-chat-incoming">
@@ -129,16 +151,24 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <button className="text-text-secondary hover:text-text-primary">
-            <i className="fas fa-search"></i>
-          </button>
-          <button className="text-text-secondary hover:text-text-primary">
-            <i className="fas fa-phone"></i>
-          </button>
-          <button className="text-text-secondary hover:text-text-primary">
-            <i className="fas fa-ellipsis-v"></i>
-          </button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowTransferModal(true)}
+            className="text-xs"
+          >
+            <UserCheck className="w-3 h-3 mr-1" />
+            Transferir
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setShowFinalizeModal(true)}
+            className="bg-green-600 hover:bg-green-700 text-white text-xs"
+          >
+            <Package className="w-3 h-3 mr-1" />
+            Finalizar Pedido
+          </Button>
         </div>
       </div>
 
@@ -192,11 +222,34 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
           <Button variant="outline" size="sm" className="text-xs">
             <i className="fas fa-calculator mr-1"></i> Calcular Frete
           </Button>
-          <Button size="sm" className="bg-whatsapp hover:bg-whatsapp-hover text-white text-xs">
+          <Button 
+            size="sm" 
+            onClick={() => setShowFinalizeModal(true)}
+            className="bg-whatsapp hover:bg-whatsapp-hover text-white text-xs"
+          >
             <i className="fas fa-check mr-1"></i> Finalizar Pedido
           </Button>
         </div>
       </div>
+
+      {/* Modals */}
+      {conversationId && (
+        <>
+          <ChatTransferModal
+            isOpen={showTransferModal}
+            onClose={() => setShowTransferModal(false)}
+            conversationId={conversationId}
+            currentAssignee={conversation?.assignedUserId || undefined}
+          />
+          <FinalizeOrderModal
+            isOpen={showFinalizeModal}
+            onClose={() => setShowFinalizeModal(false)}
+            conversationId={conversationId}
+            customerName={conversation?.customerName || 'Cliente'}
+            items={getOrderItems()}
+          />
+        </>
+      )}
     </div>
   );
 }

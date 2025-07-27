@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -5,9 +6,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { User } from "@shared/schema";
+import { AddUserModal } from "./add-user-modal";
 
 export function UsersTab() {
   const { toast } = useToast();
+  const [showAddUser, setShowAddUser] = useState(false);
 
   const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ['/api/users'],
@@ -67,7 +70,10 @@ export function UsersTab() {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
           </div>
-          <Button className="bg-green-600 hover:bg-green-700 text-white ml-4">
+          <Button 
+            onClick={() => setShowAddUser(true)}
+            className="bg-green-600 hover:bg-green-700 text-white ml-4"
+          >
             + Novo Usuário
           </Button>
         </div>
@@ -133,6 +139,11 @@ export function UsersTab() {
           </tbody>
         </table>
       </div>
+
+      <AddUserModal 
+        isOpen={showAddUser} 
+        onClose={() => setShowAddUser(false)} 
+      />
     </div>
   );
 }

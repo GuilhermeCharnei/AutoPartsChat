@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { UsersTab } from "./users-tab";
-import { InventoryTab } from "./inventory-tab";
+import { InventoryTab } from "./inventory-tab-new";
 import { ReportsTab } from "./reports-tab";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";

@@ -98,49 +98,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/products/upload-excel', isAuthenticated, upload.single('file'), async (req, res) => {
+  app.post('/api/products/upload', isAuthenticated, upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
+      const removeDuplicates = req.body.removeDuplicates === 'true';
       const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const data = XLSX.utils.sheet_to_json(worksheet);
 
-      let created = 0;
+      let imported = 0;
       let updated = 0;
-      let errors = 0;
+      let duplicates = 0;
+      const existingProducts = await storage.getAllProducts();
+      const productMap = new Map(existingProducts.map(p => [p.name.toLowerCase(), p]));
 
       for (const row of data) {
         try {
           const rowData = row as any;
           const product = {
-            name: String(rowData['Nome'] || rowData['name'] || ''),
-            description: String(rowData['Descrição'] || rowData['description'] || ''),
-            category: String(rowData['Categoria'] || rowData['category'] || ''),
+            name: String(rowData['Nome'] || rowData['name'] || '').trim(),
+            description: String(rowData['Descrição'] || rowData['description'] || '').trim(),
+            category: String(rowData['Categoria'] || rowData['category'] || '').trim(),
             price: String(parseFloat(String(rowData['Preço'] || rowData['price'] || '0'))),
             stock: parseInt(String(rowData['Estoque'] || rowData['stock'] || '0')),
-            sku: String(rowData['SKU'] || rowData['sku'] || ''),
-            brand: String(rowData['Marca'] || rowData['brand'] || ''),
-            vehicleModel: String(rowData['Modelo'] || rowData['vehicleModel'] || ''),
-            vehicleYear: String(rowData['Ano'] || rowData['vehicleYear'] || ''),
+            brand: String(rowData['Marca'] || rowData['brand'] || '').trim(),
+            vehicleModel: String(rowData['Modelo'] || rowData['vehicleModel'] || '').trim(),
+            vehicleYear: String(rowData['Ano'] || rowData['vehicleYear'] || '').trim(),
           };
 
-          if (product.name && product.price) {
+          if (!product.name || !product.price) continue;
+
+          const existingProduct = productMap.get(product.name.toLowerCase());
+          
+          if (existingProduct) {
+            if (removeDuplicates) {
+              // Update existing product with new data
+              await storage.updateProduct(existingProduct.id, product);
+              updated++;
+            } else {
+              duplicates++;
+            }
+          } else {
             await storage.createProduct(product);
-            created++;
+            imported++;
+            productMap.set(product.name.toLowerCase(), product as any);
           }
         } catch (error) {
-          errors++;
+          console.error("Error processing row:", error);
         }
       }
 
-      res.json({ created, updated, errors });
+      res.json({ imported, updated, duplicates });
     } catch (error) {
       console.error("Error uploading Excel:", error);
       res.status(500).json({ message: "Failed to process Excel file" });
+    }
+  });
+
+  // New user creation route
+  app.post('/api/users', isAuthenticated, async (req, res) => {
+    try {
+      const userData = {
+        ...req.body,
+        id: `temp_${Date.now()}`, // Temporary ID for manual users
+      };
+      const user = await storage.upsertUser(userData);
+      res.json(user);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
+  // Chat transfer route
+  app.patch('/api/conversations/:id/assign', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { sellerId } = req.body;
+      const conversation = await storage.assignConversation(parseInt(id), sellerId);
+      res.json(conversation);
+    } catch (error) {
+      console.error("Error assigning conversation:", error);
+      res.status(500).json({ message: "Failed to assign conversation" });
+    }
+  });
+
+  // Finalize order route
+  app.patch('/api/orders/:id/finalize', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const order = await storage.finalizeOrder(parseInt(id));
+      res.json(order);
+    } catch (error) {
+      console.error("Error finalizing order:", error);
+      res.status(500).json({ message: "Failed to finalize order" });
+    }
+  });
+
+  // Export reports route
+  app.get('/api/reports/export', isAuthenticated, async (req, res) => {
+    try {
+      const { type, period } = req.query;
+      
+      // Generate Excel file based on type and period
+      let data = [];
+      let filename = `relatorio_${type}_${period}.xlsx`;
+      
+      switch (type) {
+        case 'sales':
+          data = await storage.getAllOrders();
+          break;
+        case 'products':
+          data = await storage.getAllProducts();
+          break;
+        case 'conversations':
+          data = await storage.getAllConversations();
+          break;
+        case 'users':
+          data = await storage.getAllUsers();
+          break;
+        case 'inventory':
+          data = await storage.getAllProducts();
+          break;
+        default:
+          return res.status(400).json({ message: "Invalid report type" });
+      }
+
+      // Create Excel buffer
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
+      const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(buffer);
+    } catch (error) {
+      console.error("Error exporting report:", error);
+      res.status(500).json({ message: "Failed to export report" });
     }
   });
 

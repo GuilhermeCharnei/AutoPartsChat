@@ -1,90 +1,151 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { User, Order } from "@shared/schema";
+import { Button } from "@/components/ui/button";
+import { ExportModal } from "./export-modal";
+import { Download, TrendingUp, Package, MessageCircle, Users } from "lucide-react";
+import { Product, Conversation, Order } from "@shared/schema";
 
 export function ReportsTab() {
-  const { data: stats } = useQuery({
+  const [showExportModal, setShowExportModal] = useState(false);
+
+  const { data: stats } = useQuery<{ totalSales: number }>({
     queryKey: ['/api/dashboard/stats'],
   });
 
-  const { data: users = [] } = useQuery<User[]>({
-    queryKey: ['/api/users'],
-  });
-
-  const { data: orders = [] } = useQuery<Order[]>({
+  const { data: recentOrders = [] } = useQuery<Order[]>({
     queryKey: ['/api/orders'],
   });
 
-  // Calculate today's sales by seller
-  const today = new Date().toISOString().split('T')[0];
-  const todayOrders = orders.filter(order => 
-    order.createdAt && order.createdAt.toString().startsWith(today)
-  );
+  const { data: products = [] } = useQuery<Product[]>({
+    queryKey: ['/api/products'],
+  });
 
-  const salesBySeller = users.map(user => {
-    const userSales = todayOrders
-      .filter(order => order.sellerId === user.id)
-      .reduce((total, order) => total + parseFloat(order.totalAmount), 0);
-    
-    return {
-      user,
-      sales: userSales,
-    };
-  }).sort((a, b) => b.sales - a.sales);
+  const { data: conversations = [] } = useQuery<Conversation[]>({
+    queryKey: ['/api/conversations'],
+  });
+
+  const lowStockProducts = products.filter(p => p.stock < 10);
+  const activeConversations = conversations.filter(c => c.status === 'active');
 
   return (
-    <div className="h-full overflow-y-auto scrollbar-thin">
-      <div className="p-4">
-        <h3 className="font-semibold text-text-primary mb-4">Relatórios de Vendas</h3>
-        
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 gap-3 mb-4">
-          <div className="bg-whatsapp text-white p-3 rounded-lg">
-            <div className="text-sm opacity-90">Vendas Hoje</div>
-            <div className="text-xl font-bold">
-              R$ {parseFloat((stats as any)?.todaySales || '0').toFixed(2).replace('.', ',')}
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-lg font-medium text-gray-900">Relatórios e Análises</h3>
+        <Button 
+          onClick={() => setShowExportModal(true)}
+          className="bg-green-600 hover:bg-green-700"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Exportar Relatórios
+        </Button>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white p-6 rounded-lg shadow border">
+          <div className="flex items-center">
+            <TrendingUp className="h-8 w-8 text-green-600" />
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Vendas Total</p>
+              <p className="text-2xl font-bold text-gray-900">
+                R$ {stats?.totalSales?.toLocaleString() || '0'}
+              </p>
             </div>
-            <div className="text-xs opacity-75">+12% vs ontem</div>
-          </div>
-          <div className="bg-blue-500 text-white p-3 rounded-lg">
-            <div className="text-sm opacity-90">Conversas Ativas</div>
-            <div className="text-xl font-bold">{(stats as any)?.activeConversations || 0}</div>
-            <div className="text-xs opacity-75">Em atendimento</div>
-          </div>
-          <div className="bg-purple-500 text-white p-3 rounded-lg">
-            <div className="text-sm opacity-90">Taxa Conversão</div>
-            <div className="text-xl font-bold">68%</div>
-            <div className="text-xs opacity-75">+5% vs semana</div>
           </div>
         </div>
 
-        {/* Sales by Seller */}
-        <div className="space-y-2">
-          <h4 className="font-semibold text-text-primary text-sm">Vendas por Vendedor (Hoje)</h4>
-          <div className="space-y-2">
-            {salesBySeller.map(({ user, sales }) => (
-              <div key={user.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                <div className="flex items-center gap-2">
-                  {user.profileImageUrl ? (
-                    <img
-                      src={user.profileImageUrl}
-                      alt={`${user.firstName} ${user.lastName}`}
-                      className="w-6 h-6 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
-                      <i className="fas fa-user text-xs text-gray-400"></i>
-                    </div>
-                  )}
-                  <span className="text-sm">{user.firstName} {user.lastName}</span>
-                </div>
-                <div className="text-sm font-semibold text-whatsapp">
-                  R$ {sales.toFixed(2)}
-                </div>
-              </div>
-            ))}
+        <div className="bg-white p-6 rounded-lg shadow border">
+          <div className="flex items-center">
+            <Package className="h-8 w-8 text-blue-600" />
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Produtos Cadastrados</p>
+              <p className="text-2xl font-bold text-gray-900">{products.length}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow border">
+          <div className="flex items-center">
+            <MessageCircle className="h-8 w-8 text-purple-600" />
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Conversas Ativas</p>
+              <p className="text-2xl font-bold text-gray-900">{activeConversations.length}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow border">
+          <div className="flex items-center">
+            <Users className="h-8 w-8 text-orange-600" />
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Pedidos Hoje</p>
+              <p className="text-2xl font-bold text-gray-900">{recentOrders.length}</p>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Recent Orders */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg shadow border">
+          <div className="px-6 py-4 border-b">
+            <h4 className="text-lg font-medium text-gray-900">Pedidos Recentes</h4>
+          </div>
+          <div className="p-6">
+            {recentOrders.length > 0 ? (
+              <div className="space-y-4">
+                {recentOrders.slice(0, 5).map((order: any, index: number) => (
+                  <div key={order.id} className="flex justify-between items-center py-2 border-b last:border-b-0">
+                    <div>
+                      <p className="font-medium text-gray-900">Pedido #{order.id}</p>
+                      <p className="text-sm text-gray-500">Cliente: {order.customerName}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium text-green-600">R$ {order.total}</p>
+                      <p className="text-sm text-gray-500">{order.status}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-8">Nenhum pedido encontrado</p>
+            )}
+          </div>
+        </div>
+
+        {/* Low Stock Alert */}
+        <div className="bg-white rounded-lg shadow border">
+          <div className="px-6 py-4 border-b">
+            <h4 className="text-lg font-medium text-gray-900">Produtos com Estoque Baixo</h4>
+          </div>
+          <div className="p-6">
+            {lowStockProducts.length > 0 ? (
+              <div className="space-y-4">
+                {lowStockProducts.slice(0, 5).map((product: any, index: number) => (
+                  <div key={product.id} className="flex justify-between items-center py-2 border-b last:border-b-0">
+                    <div>
+                      <p className="font-medium text-gray-900">{product.name}</p>
+                      <p className="text-sm text-gray-500">{product.category}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                        {product.stock} unidades
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-8">Todos os produtos com estoque adequado</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <ExportModal 
+        isOpen={showExportModal} 
+        onClose={() => setShowExportModal(false)} 
+      />
     </div>
   );
 }
