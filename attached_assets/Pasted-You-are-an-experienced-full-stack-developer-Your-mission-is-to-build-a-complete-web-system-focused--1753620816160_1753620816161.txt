@@ -1,0 +1,75 @@
+You are an experienced full-stack developer. Your mission is to build a complete web system focused on automating sales via WhatsApp. The system will be used by an auto parts store.
+
+📌 Important notes:
+The entire interface must be in Brazilian Portuguese.
+
+The layout must closely follow the visual style of WhatsApp Web, especially for the chat interface and sidebar.
+
+🛠️ System Features:
+1. WhatsApp Web-style Chatbot Interface:
+Automatically responds to customers through WhatsApp Web or API.
+
+Retrieves product data in real time from a database (based on uploaded Excel sheet).
+
+Transfers the customer to a human seller after answering basic questions or completing a product selection.
+
+2. Admin Panel:
+Login with secure authentication.
+
+Upload Excel spreadsheet to update product inventory.
+
+Manual product creation/editing.
+
+View and edit inventory data in real time.
+
+Manage users (sellers) with role-based permissions (e.g., checkboxes to allow access to reports, inventory, etc.).
+
+3. Seller Panel:
+Interface must resemble WhatsApp Web.
+
+Sellers receive notifications when a chatbot hands off a customer.
+
+Sellers can view full conversation history.
+
+Can finalize orders and confirm payments.
+
+Can manually add products not listed in the spreadsheet.
+
+Product search and inventory check integrated.
+
+4. Database:
+PostgreSQL or Supabase is preferred.
+
+Automatically sync inventory when Excel spreadsheet is uploaded.
+
+Inventory stock must decrement automatically after a sale is completed.
+
+Data should be structured by product, category, price, description, and available quantity.
+
+5. Reports & Analytics:
+Reports by seller, date, and sales volume.
+
+Performance metrics like: total sales, conversion rates, orders handled by the bot, etc.
+
+6. Mobile Compatibility:
+The system must have a responsive layout that works well on phones and tablets.
+
+UI elements should adapt to smaller screens while maintaining the WhatsApp Web-like experience.
+
+📄 Attached support files:
+[Excel Inventory File](attach: listagem com preço (3).xlsx)
+
+[Project Scope Document (Word)](attach: Escopo_Sistema_Chatbot_Loja.docx)
+
+[System Flowchart](attach: Fluxograma_Chatbot_Loja_Autopecas.png)
+
+⚙️ Tech Stack Suggestions:
+Backend: Node.js, Python (FastAPI), or another modern framework.
+
+Frontend: React or Next.js preferred.
+
+Database: Supabase or PostgreSQL.
+
+WhatsApp Integration: Use Puppeteer, Meta's official API, or an alternative that mimics WhatsApp Web behavior.
+
+Authentication: JWT or similar secure method.

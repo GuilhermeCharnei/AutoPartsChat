@@ -1,0 +1,77 @@
+Você é um desenvolvedor fullstack experiente. Sua missão é criar um sistema web completo com foco em automação de vendas via WhatsApp. O sistema será usado por uma loja de autopeças.
+
+🛠️ Funcionalidade do sistema:
+Chatbot integrado ao WhatsApp Web:
+
+Atende o cliente automaticamente.
+
+Consulta produtos em tempo real a partir de um banco de dados (carregado via planilha Excel).
+
+Fecha o pedido e transfere ao vendedor humano.
+
+Painel Administrativo (Admin):
+
+Login com autenticação.
+
+Upload da planilha de estoque (Excel).
+
+Cadastro/edição de produtos manualmente.
+
+Visualização e edição do estoque em tempo real.
+
+Criação e gestão de usuários (vendedores).
+
+Permissões via checkbox (ex: editar estoque, visualizar relatórios, etc).
+
+Painel do Vendedor:
+
+Interface parecida com WhatsApp Web.
+
+Recebe notificações em tempo real quando o bot transfere um pedido.
+
+Visualiza o histórico da conversa com o cliente.
+
+Finaliza pedidos e confirma pagamento.
+
+Pode adicionar produtos manualmente (caso o item não esteja no Excel).
+
+Consulta de produtos e estoque.
+
+Banco de Dados:
+
+Pode ser Supabase ou PostgreSQL.
+
+Deve permitir leitura da planilha Excel para atualizar estoque.
+
+Estoque decrementado automaticamente após venda.
+
+Dados organizados por produto, categoria, preço, descrição e estoque.
+
+Relatórios:
+
+Relatórios por vendedor, por dia, por volume de pedidos.
+
+Indicadores de desempenho: total de vendas, conversões, pedidos encaminhados pelo bot.
+
+Compatibilidade Mobile:
+
+O layout deve se adaptar a celulares e tablets, mantendo a estética do WhatsApp Web.
+
+📄 Arquivos de apoio:
+[Planilha de estoque Excel](anexar: listagem com preço (3).xlsx)
+
+[Documento de escopo completo (Word)](anexar: Escopo_Sistema_Chatbot_Loja.docx)
+
+[Fluxograma do sistema](anexar: Fluxograma_Chatbot_Loja_Autopecas.png)
+
+🧩 Requisitos técnicos:
+Backend: Node.js / Python (FastAPI) / ou outra tecnologia moderna.
+
+Frontend: React / Next.js ou similar.
+
+Integração com WhatsApp (pode usar Webhook, Puppeteer, API oficial Meta, etc.).
+
+Sistema de autenticação JWT ou similar.
+
+📌 Observação final:
+O sistema tem foco em automatizar vendas, reduzir o número de vendedores e manter o padrão de atendimento via WhatsApp, com um painel fácil de usar e rico em dados.
