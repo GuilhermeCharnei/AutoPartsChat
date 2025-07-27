@@ -41,7 +41,7 @@ export function ReportsTab() {
           <div className="bg-whatsapp text-white p-3 rounded-lg">
             <div className="text-sm opacity-90">Vendas Hoje</div>
             <div className="text-xl font-bold">
-              R$ {(stats as any)?.todaySales?.toFixed(2) || '0,00'}
+              R$ {parseFloat((stats as any)?.todaySales || '0').toFixed(2).replace('.', ',')}
             </div>
             <div className="text-xs opacity-75">+12% vs ontem</div>
           </div>
