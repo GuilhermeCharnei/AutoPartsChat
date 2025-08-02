@@ -35,6 +35,7 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role").default("vendedor"), // dev, administrador, vendedor
   permissions: jsonb("permissions").default({}),
+  isActive: boolean("is_active").notNull().default(true),
   phone: varchar("phone"),
   companyName: varchar("company_name"),
   companyAddress: varchar("company_address"),

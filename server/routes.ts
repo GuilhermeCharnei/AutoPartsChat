@@ -16,7 +16,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub;
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
@@ -615,7 +615,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // OpenAI Configuration routes (DEV only)
   app.get('/api/admin/openai-config', isAuthenticated, async (req, res) => {
     try {
-      const currentUser = await storage.getUser(req.user.claims.sub);
+      const currentUser = await storage.getUser((req.user as any)?.claims?.sub);
       
       if (!currentUser || currentUser.role !== 'dev') {
         return res.status(403).json({ message: "Apenas usuários DEV podem acessar configurações da OpenAI" });
@@ -638,7 +638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/admin/openai-config', isAuthenticated, async (req, res) => {
     try {
-      const currentUser = await storage.getUser(req.user.claims.sub);
+      const currentUser = await storage.getUser((req.user as any)?.claims?.sub);
       
       if (!currentUser || currentUser.role !== 'dev') {
         return res.status(403).json({ message: "Apenas usuários DEV podem configurar a OpenAI" });
@@ -656,7 +656,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/chat/ai-message', isAuthenticated, async (req, res) => {
     try {
       const { message } = req.body;
-      const currentUser = await storage.getUser(req.user.claims.sub);
+      const currentUser = await storage.getUser((req.user as any)?.claims?.sub);
       
       if (!currentUser) {
         return res.status(401).json({ message: "Usuário não autenticado" });
