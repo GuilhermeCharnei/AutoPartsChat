@@ -77,7 +77,8 @@ export function InventoryTab() {
   }
 
   return (
-    <div className="p-6">
+    <div className="h-full overflow-y-auto">
+      <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-medium text-gray-900">Gerenciar Estoque</h3>
         <Button 
@@ -106,6 +107,13 @@ export function InventoryTab() {
         <Package className="w-8 h-8 text-gray-400 mx-auto mb-2" />
         <p className="text-sm text-gray-500">Arraste a planilha Excel aqui ou clique para selecionar</p>
         <p className="text-xs text-gray-400 mt-1">Formato: .xlsx, .xls</p>
+        <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+          <p className="text-xs text-blue-700">
+            <strong>Sobre duplicatas:</strong> Se você subir uma planilha com 300 produtos e depois subir outra com 350 produtos (sendo 300 já existentes), 
+            o sistema detectará automaticamente os duplicados pelo nome. Os 300 existentes serão atualizados com novos preços/estoque, 
+            e apenas os 50 novos produtos serão adicionados.
+          </p>
+        </div>
       </div>
 
       {/* Stock Overview */}
@@ -222,6 +230,7 @@ export function InventoryTab() {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

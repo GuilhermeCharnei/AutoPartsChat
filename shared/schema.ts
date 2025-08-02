@@ -33,13 +33,13 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  role: varchar("role").notNull().default("seller"), // dev, admin, seller
-  permissions: jsonb("permissions").default({}), // {viewStock: true, editProducts: true, viewReports: false, accessWhatsappAPI: false, accessOpenAI: false}
-  isActive: boolean("is_active").notNull().default(true),
+  role: varchar("role").default("vendedor"), // dev, administrador, vendedor
+  permissions: jsonb("permissions").default({}),
   phone: varchar("phone"),
   companyName: varchar("company_name"),
   companyAddress: varchar("company_address"),
   companyDescription: varchar("company_description"),
+  systemName: varchar("system_name").default("Sistema de Vendas WhatsApp - Autopeças Brasil"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

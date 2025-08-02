@@ -25,7 +25,10 @@ export function ProfileSettingsTab() {
     companyName: '',
     companyAddress: '',
     companyDescription: '',
-    profileImage: ''
+    profileImage: '',
+    systemName: 'Sistema de Vendas WhatsApp - Autopeças Brasil',
+    contactPhone: '',
+    contactName: ''
   });
 
   // Atualizar formData quando o profile carregar

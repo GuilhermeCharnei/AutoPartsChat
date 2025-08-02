@@ -162,15 +162,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // New user creation route
   app.post('/api/users', isAuthenticated, async (req, res) => {
     try {
-      const userData = {
-        ...req.body,
-        id: `temp_${Date.now()}`, // Temporary ID for manual users
-      };
-      const user = await storage.upsertUser(userData);
+      const userData = req.body;
+      
+      // Check if email already exists
+      const existingUser = await storage.getUserByEmail(userData.email);
+      if (existingUser) {
+        return res.status(400).json({ 
+          message: "Este email já está em uso. Por favor, utilize outro email." 
+        });
+      }
+      
+      const user = await storage.upsertUser({
+        id: `temp_${Date.now()}`,
+        role: userData.role || 'vendedor',
+        permissions: userData.permissions || {},
+        ...userData
+      });
+      res.json(user);
+    } catch (error: any) {
+      console.error("Error creating user:", error);
+      if (error.code === '23505') {
+        res.status(400).json({ 
+          message: "Este email já está em uso. Por favor, utilize outro email." 
+        });
+      } else {
+        res.status(500).json({ message: "Erro interno do servidor. Tente novamente." });
+      }
+    }
+  });
+
+  // Update my user to DEV role
+  app.patch('/api/users/promote-to-dev', isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUserId = req.user?.claims?.sub;
+      const user = await storage.updateUser(currentUserId, {
+        role: 'dev',
+        permissions: {
+          viewStock: true,
+          editProducts: true,
+          viewReports: true,
+          manageUsers: true,
+          accessWhatsappAPI: true,
+          accessOpenAI: true,
+          systemSettings: true
+        }
+      });
       res.json(user);
     } catch (error) {
-      console.error("Error creating user:", error);
-      res.status(500).json({ message: "Failed to create user" });
+      console.error("Error promoting user:", error);
+      res.status(500).json({ message: "Failed to promote user" });
     }
   });
 
@@ -202,7 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin Profile Routes
   app.get('/api/admin/profile', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user?.claims?.sub;
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
@@ -213,7 +253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/admin/profile', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user?.claims?.sub;
       const updatedProfile = await storage.updateUser(userId, req.body);
       res.json(updatedProfile);
     } catch (error) {

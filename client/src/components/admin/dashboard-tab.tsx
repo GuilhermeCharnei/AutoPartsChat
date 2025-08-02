@@ -84,12 +84,13 @@ export function DashboardTab() {
   ];
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Dashboard</h3>
-        <p className="text-sm text-gray-500">Visão geral do sistema de vendas WhatsApp</p>
-      </div>
+    <div className="h-full overflow-y-auto">
+      <div className="p-6">
+        {/* Header */}
+        <div className="mb-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Dashboard</h3>
+          <p className="text-sm text-gray-500">Visão geral do sistema de vendas WhatsApp</p>
+        </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -206,6 +207,7 @@ export function DashboardTab() {
             </button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
