@@ -26,9 +26,9 @@ export function AdminPanel() {
   const aiResolution = 76; // Calculated based on bot vs human responses
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-gray-50 overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex-shrink-0">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Dashboard Administrativo</h1>
           <Button className="bg-green-600 hover:bg-green-700 text-white text-sm">
@@ -39,7 +39,7 @@ export function AdminPanel() {
       </div>
 
       {/* KPI Cards */}
-      <div className="bg-white px-4 sm:px-6 py-4 border-b border-gray-200">
+      <div className="bg-white px-4 sm:px-6 py-4 border-b border-gray-200 flex-shrink-0">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
             <div className="flex items-center justify-between">
@@ -96,12 +96,12 @@ export function AdminPanel() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="px-6">
-          <div className="flex space-x-8">
+      <div className="bg-white border-b border-gray-200 flex-shrink-0">
+        <div className="px-4 sm:px-6">
+          <div className="flex space-x-4 sm:space-x-8 overflow-x-auto scrollbar-thin">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === 'dashboard'
                   ? 'border-green-500 text-green-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -111,7 +111,7 @@ export function AdminPanel() {
             </button>
             <button
               onClick={() => setActiveTab('users')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === 'users'
                   ? 'border-green-500 text-green-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -121,7 +121,7 @@ export function AdminPanel() {
             </button>
             <button
               onClick={() => setActiveTab('inventory')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === 'inventory'
                   ? 'border-green-500 text-green-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -131,7 +131,7 @@ export function AdminPanel() {
             </button>
             <button
               onClick={() => setActiveTab('reports')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === 'reports'
                   ? 'border-green-500 text-green-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -144,9 +144,9 @@ export function AdminPanel() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden bg-white">
+      <div className="flex-1 min-h-0 bg-white">
         {activeTab === 'dashboard' && (
-          <div className="p-6">
+          <div className="h-full overflow-y-auto p-4 sm:p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Visão Geral do Sistema</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
@@ -168,9 +168,21 @@ export function AdminPanel() {
             </div>
           </div>
         )}
-        {activeTab === 'users' && <UsersTab />}
-        {activeTab === 'inventory' && <InventoryTab />}
-        {activeTab === 'reports' && <ReportsTab />}
+        {activeTab === 'users' && (
+          <div className="h-full overflow-y-auto">
+            <UsersTab />
+          </div>
+        )}
+        {activeTab === 'inventory' && (
+          <div className="h-full overflow-y-auto">
+            <InventoryTab />
+          </div>
+        )}
+        {activeTab === 'reports' && (
+          <div className="h-full overflow-y-auto">
+            <ReportsTab />
+          </div>
+        )}
       </div>
     </div>
   );

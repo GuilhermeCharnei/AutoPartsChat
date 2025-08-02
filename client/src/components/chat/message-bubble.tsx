@@ -83,7 +83,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                     <div className="text-xs text-text-secondary">{product.description}</div>
                     <div className="text-whatsapp font-bold">R$ {product.price}</div>
                   </div>
-                ))
+                )) || null
               }
             </div>
           )}

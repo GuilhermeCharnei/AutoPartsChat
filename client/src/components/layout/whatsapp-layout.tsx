@@ -9,9 +9,9 @@ export function WhatsAppLayout() {
   const [selectedConversationId, setSelectedConversationId] = useState<number | null>(null);
 
   return (
-    <div className="h-screen flex flex-col bg-whatsapp-bg font-whatsapp">
+    <div className="h-screen flex flex-col bg-whatsapp-bg font-whatsapp overflow-hidden">
       {/* Navigation Header */}
-      <div className="bg-whatsapp text-white px-3 sm:px-4 py-3 flex justify-between items-center">
+      <div className="bg-whatsapp text-white px-3 sm:px-4 py-3 flex justify-between items-center flex-shrink-0">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <i className="fas fa-comments text-lg sm:text-xl flex-shrink-0"></i>
           <h1 className="text-sm sm:text-lg font-semibold truncate">
@@ -49,14 +49,14 @@ export function WhatsAppLayout() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Left Sidebar - Admin Panel */}
-        <div className="hidden lg:block w-80 flex-shrink-0">
+        <div className="hidden lg:flex w-80 flex-shrink-0 flex-col min-h-0">
           <AdminPanel />
         </div>
 
         {/* Chat List Panel */}
-        <div className="w-full sm:w-80 lg:w-80 flex-shrink-0 border-r border-border-light">
+        <div className="w-full sm:w-80 lg:w-80 flex-shrink-0 border-r border-border-light flex flex-col min-h-0">
           <ChatList 
             selectedConversationId={selectedConversationId}
             onSelectConversation={setSelectedConversationId}
@@ -64,7 +64,7 @@ export function WhatsAppLayout() {
         </div>
 
         {/* Chat Conversation Area */}
-        <div className={`flex-1 ${selectedConversationId ? 'block' : 'hidden sm:block'}`}>
+        <div className={`flex-1 flex flex-col min-h-0 ${selectedConversationId ? 'flex' : 'hidden sm:flex'}`}>
           <ChatConversation conversationId={selectedConversationId} />
         </div>
 

@@ -22,7 +22,7 @@ export function ChatList({ selectedConversationId, onSelectConversation }: ChatL
 
   if (isLoading) {
     return (
-      <div className="w-96 bg-white border-r border-border-light flex items-center justify-center">
+      <div className="h-full bg-white flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-whatsapp border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
