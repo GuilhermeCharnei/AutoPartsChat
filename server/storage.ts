@@ -64,6 +64,19 @@ export interface IStorage {
     activeConversations: number;
     totalSales: number;
   }>;
+
+  // Permission operations
+  hasPermission(user: User, permission: string): boolean;
+  updateUserRole(userId: string, role: string): Promise<User>;
+  updateUserPermissions(userId: string, permissions: Record<string, boolean>): Promise<User>;
+  
+  // OpenAI Config operations
+  getOpenAIConfig(): Promise<any>;
+  createOrUpdateOpenAIConfig(data: any): Promise<any>;
+  
+  // System Conversations operations
+  getSystemConversations(): Promise<any[]>;
+  createSystemConversation(data: any): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -144,6 +157,89 @@ export class DatabaseStorage implements IStorage {
     return this.whatsappConfig;
   }
 
+  // Permission checking
+  hasPermission(user: User, permission: string): boolean {
+    if (user.role === 'dev') return true; // DEV has all permissions
+    
+    const userPermissions = user.permissions as any || {};
+    return userPermissions[permission] === true;
+  }
+
+  async updateUserRole(userId: string, role: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        role,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async updateUserPermissions(userId: string, permissions: Record<string, boolean>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        permissions,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  // OpenAI Config operations - mock for now
+  private openaiConfig: any = {
+    apiKey: '',
+    model: 'gpt-4o',
+    maxTokens: 1000,
+    temperature: 0.7,
+    systemPrompt: 'Você é um assistente especializado em autopeças.',
+    isActive: false
+  };
+
+  async getOpenAIConfig(): Promise<any> {
+    return this.openaiConfig;
+  }
+
+  async createOrUpdateOpenAIConfig(data: any): Promise<any> {
+    this.openaiConfig = { ...this.openaiConfig, ...data };
+    return this.openaiConfig;
+  }
+
+  // System Conversations operations - mock for now
+  private systemConversations: any[] = [
+    {
+      id: -1, // Negative ID to distinguish from regular conversations
+      customerName: "🤖 IA Assistant",
+      customerPhone: "bot",
+      customerAvatar: null,
+      status: "active",
+      lastMessage: "Consulte a IA sobre produtos, preços e informações do negócio",
+      lastMessageAt: new Date(),
+      unreadCount: 0,
+      assignedUserId: null,
+      isSystemBot: true,
+      type: "bot"
+    }
+  ];
+
+  async getSystemConversations(): Promise<any[]> {
+    return this.systemConversations;
+  }
+
+  async createSystemConversation(data: any): Promise<any> {
+    const newConv = {
+      id: this.systemConversations.length + 1,
+      ...data,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.systemConversations.push(newConv);
+    return newConv;
+  }
+
   // Permissions
   async getAllPermissions(): Promise<any[]> {
     // Return default permissions - in production this could be stored in database
@@ -164,14 +260,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(users).where(eq(users.isActive, true)).orderBy(users.firstName);
   }
 
-  async updateUserPermissions(id: string, permissions: any): Promise<User | undefined> {
-    const [user] = await db
-      .update(users)
-      .set({ permissions, updatedAt: new Date() })
-      .where(eq(users.id, id))
-      .returning();
-    return user;
-  }
+
 
   // Product operations
   async getAllProducts(): Promise<Product[]> {
@@ -234,13 +323,22 @@ export class DatabaseStorage implements IStorage {
 
   // Conversation operations
   async getAllConversations(): Promise<Conversation[]> {
-    return await db
+    const regularConversations = await db
       .select()
       .from(conversations)
       .orderBy(desc(conversations.lastMessageAt));
+    
+    // Add system bot conversation at the top for internal users
+    const botConversation = this.systemConversations[0];
+    return [botConversation as any, ...regularConversations];
   }
 
   async getConversation(id: number): Promise<Conversation | undefined> {
+    // Handle bot conversation specially
+    if (id === -1) {
+      return this.systemConversations[0] as any;
+    }
+    
     const [conversation] = await db.select().from(conversations).where(eq(conversations.id, id));
     return conversation;
   }
@@ -261,6 +359,11 @@ export class DatabaseStorage implements IStorage {
 
   // Message operations
   async getMessagesByConversation(conversationId: number): Promise<Message[]> {
+    // Handle bot conversation specially - return empty array for now
+    if (conversationId === -1) {
+      return [];
+    }
+    
     return await db
       .select()
       .from(messages)

@@ -33,9 +33,13 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  role: varchar("role").notNull().default("seller"), // admin, seller
-  permissions: jsonb("permissions").default({}), // {viewStock: true, editProducts: true, viewReports: false}
+  role: varchar("role").notNull().default("seller"), // dev, admin, seller
+  permissions: jsonb("permissions").default({}), // {viewStock: true, editProducts: true, viewReports: false, accessWhatsappAPI: false, accessOpenAI: false}
   isActive: boolean("is_active").notNull().default(true),
+  phone: varchar("phone"),
+  companyName: varchar("company_name"),
+  companyAddress: varchar("company_address"),
+  companyDescription: varchar("company_description"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -139,6 +143,50 @@ export const insertConversationSchema = createInsertSchema(conversations).omit({
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
 export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, createdAt: true, updatedAt: true });
 
+// OpenAI Configuration (separated from WhatsApp)
+export const openaiConfig = pgTable("openai_config", {
+  id: serial("id").primaryKey(),
+  apiKey: varchar("api_key"),
+  model: varchar("model").default("gpt-4o"),
+  maxTokens: integer("max_tokens").default(1000),
+  temperature: decimal("temperature", { precision: 3, scale: 2 }).default("0.7"),
+  systemPrompt: text("system_prompt"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// System conversations for internal users (including bot conversation)
+export const systemConversations = pgTable("system_conversations", {
+  id: serial("id").primaryKey(),
+  name: varchar("name").notNull(), // "IA Assistant", "Bot Consultas", etc.
+  type: varchar("type").notNull(), // "bot", "internal", "support"
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// WhatsApp Configuration
+export const whatsappConfig = pgTable("whatsapp_config", {
+  id: serial("id").primaryKey(),
+  apiKey: varchar("api_key"),
+  phoneNumber: varchar("phone_number"),
+  companyName: varchar("company_name"),
+  welcomeMessage: text("welcome_message"),
+  awayMessage: text("away_message"),
+  workingHours: jsonb("working_hours"), // {start: "09:00", end: "18:00", days: ["mon", "tue"...]}
+  isActive: boolean("is_active").default(true),
+  bot: jsonb("bot").default({}), // Bot configuration
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Additional insert schemas
+export const insertOpenAIConfigSchema = createInsertSchema(openaiConfig).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertSystemConversationSchema = createInsertSchema(systemConversations).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertWhatsAppConfigSchema = createInsertSchema(whatsappConfig).omit({ id: true, createdAt: true, updatedAt: true });
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -150,3 +198,9 @@ export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Order = typeof orders.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
+export type OpenAIConfig = typeof openaiConfig.$inferSelect;
+export type InsertOpenAIConfig = z.infer<typeof insertOpenAIConfigSchema>;
+export type SystemConversation = typeof systemConversations.$inferSelect;
+export type InsertSystemConversation = z.infer<typeof insertSystemConversationSchema>;
+export type WhatsAppConfig = typeof whatsappConfig.$inferSelect;
+export type InsertWhatsAppConfig = z.infer<typeof insertWhatsAppConfigSchema>;

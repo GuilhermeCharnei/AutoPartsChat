@@ -10,7 +10,8 @@ import {
   ChevronRight,
   Settings,
   Shield,
-  User
+  User,
+  Sparkles
 } from "lucide-react";
 import { UsersTab } from "./users-tab";
 import { InventoryTab } from "./inventory-tab-new";
@@ -20,11 +21,12 @@ import { DashboardTab } from "./dashboard-tab";
 import { ProfileSettingsTab } from "./profile-settings-tab";
 import { WhatsAppSetupTab } from "./whatsapp-setup-tab";
 import { PermissionsTab } from "./permissions-tab";
+import { OpenAIConfigTab } from "./openai-config-tab";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 
 export function AdminPanel() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'conversations' | 'users' | 'inventory' | 'reports' | 'profile' | 'whatsapp' | 'permissions'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'conversations' | 'users' | 'inventory' | 'reports' | 'profile' | 'whatsapp' | 'openai' | 'permissions'>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const { data: conversations = [] } = useQuery({
@@ -77,6 +79,12 @@ export function AdminPanel() {
       badge: null
     },
     {
+      id: 'openai',
+      label: 'OpenAI API',
+      icon: Sparkles,
+      badge: null
+    },
+    {
       id: 'permissions',
       label: 'Permissões',
       icon: Shield,
@@ -93,6 +101,7 @@ export function AdminPanel() {
       case 'reports': return 'Relatórios e Analytics';
       case 'profile': return 'Configurações do Perfil';
       case 'whatsapp': return 'Configuração WhatsApp API';
+      case 'openai': return 'Configuração OpenAI API';
       case 'permissions': return 'Gerenciamento de Permissões';
       default: return 'Dashboard';
     }
@@ -190,6 +199,7 @@ export function AdminPanel() {
           {activeTab === 'reports' && <ReportsTab />}
           {activeTab === 'profile' && <ProfileSettingsTab />}
           {activeTab === 'whatsapp' && <WhatsAppSetupTab />}
+          {activeTab === 'openai' && <OpenAIConfigTab />}
           {activeTab === 'permissions' && <PermissionsTab />}
         </div>
       </div>

@@ -572,6 +572,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // OpenAI Configuration routes (DEV only)
+  app.get('/api/admin/openai-config', isAuthenticated, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      
+      if (!currentUser || currentUser.role !== 'dev') {
+        return res.status(403).json({ message: "Apenas usuários DEV podem acessar configurações da OpenAI" });
+      }
+
+      const config = await storage.getOpenAIConfig();
+      
+      // Don't expose the actual API key
+      const safeConfig = {
+        ...config,
+        apiKey: config.apiKey ? '***' + config.apiKey.slice(-4) : ''
+      };
+      
+      res.json(safeConfig);
+    } catch (error) {
+      console.error("Error getting OpenAI config:", error);
+      res.status(500).json({ message: "Erro ao buscar configuração da OpenAI" });
+    }
+  });
+
+  app.put('/api/admin/openai-config', isAuthenticated, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      
+      if (!currentUser || currentUser.role !== 'dev') {
+        return res.status(403).json({ message: "Apenas usuários DEV podem configurar a OpenAI" });
+      }
+
+      const config = await storage.createOrUpdateOpenAIConfig(req.body);
+      res.json(config);
+    } catch (error) {
+      console.error("Error updating OpenAI config:", error);
+      res.status(500).json({ message: "Erro ao atualizar configuração da OpenAI" });
+    }
+  });
+
+  // Chat with AI Bot for internal use
+  app.post('/api/chat/ai-message', isAuthenticated, async (req, res) => {
+    try {
+      const { message } = req.body;
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      
+      if (!currentUser) {
+        return res.status(401).json({ message: "Usuário não autenticado" });
+      }
+
+      const config = await storage.getOpenAIConfig();
+      
+      if (!config.isActive || !config.apiKey) {
+        return res.status(400).json({ message: "OpenAI API não está configurada ou ativa" });
+      }
+
+      // Mock response - in production this would call the actual OpenAI API
+      const response = `Como assistente especializado em autopeças, posso ajudar com informações sobre: produtos, preços, compatibilidade de peças, estoque e recomendações. Sua mensagem: "${message}". Como posso ajudá-lo especificamente?`;
+      
+      res.json({ response });
+    } catch (error) {
+      console.error("Error processing AI message:", error);
+      res.status(500).json({ message: "Erro ao processar mensagem da IA" });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
 

@@ -10,6 +10,7 @@ import { MessageBubble } from "./message-bubble";
 import { ChatTransferModal } from "@/components/admin/chat-transfer-modal";
 import { FinalizeOrderModal } from "@/components/admin/finalize-order-modal";
 import { AIChatIndicator } from "./ai-chat-indicator";
+import { AiBotConversation } from "./ai-bot-conversation";
 import { UserCheck, Package, Bot, Sparkles } from "lucide-react";
 
 interface ChatConversationProps {
@@ -161,6 +162,11 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
       };
     });
   };
+
+  // Special handling for AI bot conversation
+  if (conversationId === -1) {
+    return <AiBotConversation />;
+  }
 
   if (!conversationId) {
     return (
