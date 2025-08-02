@@ -3,6 +3,7 @@ import { UsersTab } from "./users-tab";
 import { InventoryTab } from "./inventory-tab-new";
 import { ReportsTab } from "./reports-tab";
 import { ActiveConversationsTab } from "./active-conversations-tab";
+import { DashboardTab } from "./dashboard-tab";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
@@ -108,7 +109,7 @@ export function AdminPanel() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Visão Geral
+              Dashboard
             </button>
             <button
               onClick={() => setActiveTab('conversations')}
@@ -157,26 +158,8 @@ export function AdminPanel() {
       {/* Content */}
       <div className="flex-1 min-h-0 bg-white">
         {activeTab === 'dashboard' && (
-          <div className="h-full overflow-y-auto p-4 sm:p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Visão Geral do Sistema</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
-                <h4 className="font-medium text-gray-900 mb-2">Atividade Recente</h4>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <p>• {(conversations as any[]).length} conversas hoje</p>
-                  <p>• {totalUploads} produtos no catálogo</p>
-                  <p>• {(users as any[]).length} usuários ativos</p>
-                </div>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
-                <h4 className="font-medium text-gray-900 mb-2">Performance IA</h4>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <p>• 76% resoluções automáticas</p>
-                  <p>• 2.3s tempo médio resposta</p>
-                  <p>• 94% satisfação cliente</p>
-                </div>
-              </div>
-            </div>
+          <div className="h-full">
+            <DashboardTab />
           </div>
         )}
         {activeTab === 'conversations' && (

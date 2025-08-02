@@ -12,6 +12,8 @@ Preferred communication style: Simple, everyday language.
 - Implemented resizable divider functionality between conversation list and chat area
 - Added "Conversas Ativas" (Active Conversations) dedicated tab in admin panel
 - Enhanced layout flexibility with toggle between fixed and resizable layouts
+- Created dedicated Dashboard tab with comprehensive metrics and performance indicators
+- Separated dashboard analytics from conversation management for better organization
 
 ## System Architecture
 
