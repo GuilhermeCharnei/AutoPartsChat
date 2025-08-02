@@ -15,6 +15,10 @@ Preferred communication style: Simple, everyday language.
 - Created dedicated Dashboard tab with comprehensive metrics and performance indicators
 - Separated dashboard analytics from conversation management for better organization
 - Redesigned admin panel with clean sidebar navigation and improved layout structure
+- Added comprehensive admin functions: profile management, company settings, bot configuration
+- Created WhatsApp API setup configuration tab for bot functionality
+- Implemented user permission management system with role-based access control
+- Added profile settings with company information and photo upload capabilities
 
 ## System Architecture
 

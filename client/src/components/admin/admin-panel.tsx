@@ -7,18 +7,24 @@ import {
   BarChart3,
   Download,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Settings,
+  Shield,
+  User
 } from "lucide-react";
 import { UsersTab } from "./users-tab";
 import { InventoryTab } from "./inventory-tab-new";
 import { ReportsTab } from "./reports-tab";
 import { ActiveConversationsTab } from "./active-conversations-tab";
 import { DashboardTab } from "./dashboard-tab";
+import { ProfileSettingsTab } from "./profile-settings-tab";
+import { WhatsAppSetupTab } from "./whatsapp-setup-tab";
+import { PermissionsTab } from "./permissions-tab";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 
 export function AdminPanel() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'conversations' | 'users' | 'inventory' | 'reports'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'conversations' | 'users' | 'inventory' | 'reports' | 'profile' | 'whatsapp' | 'permissions'>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const { data: conversations = [] } = useQuery({
@@ -57,6 +63,24 @@ export function AdminPanel() {
       label: 'Relatórios',
       icon: BarChart3,
       badge: null
+    },
+    {
+      id: 'profile',
+      label: 'Perfil',
+      icon: User,
+      badge: null
+    },
+    {
+      id: 'whatsapp',
+      label: 'WhatsApp API',
+      icon: Settings,
+      badge: null
+    },
+    {
+      id: 'permissions',
+      label: 'Permissões',
+      icon: Shield,
+      badge: null
     }
   ];
 
@@ -67,6 +91,9 @@ export function AdminPanel() {
       case 'users': return 'Gerenciar Usuários';
       case 'inventory': return 'Gerenciar Inventário';
       case 'reports': return 'Relatórios e Analytics';
+      case 'profile': return 'Configurações do Perfil';
+      case 'whatsapp': return 'Configuração WhatsApp API';
+      case 'permissions': return 'Gerenciamento de Permissões';
       default: return 'Dashboard';
     }
   };
@@ -161,6 +188,9 @@ export function AdminPanel() {
           {activeTab === 'users' && <UsersTab />}
           {activeTab === 'inventory' && <InventoryTab />}
           {activeTab === 'reports' && <ReportsTab />}
+          {activeTab === 'profile' && <ProfileSettingsTab />}
+          {activeTab === 'whatsapp' && <WhatsAppSetupTab />}
+          {activeTab === 'permissions' && <PermissionsTab />}
         </div>
       </div>
     </div>

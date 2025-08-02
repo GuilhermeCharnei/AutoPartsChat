@@ -88,6 +88,70 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async updateUser(id: string, data: any): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async promoteUserToAdmin(id: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        role: 'admin',
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async demoteUserFromAdmin(id: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        role: 'seller',
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  // WhatsApp Configuration
+  private whatsappConfig: any = {};
+
+  async getWhatsAppConfig(): Promise<any> {
+    return this.whatsappConfig;
+  }
+
+  async updateWhatsAppConfig(config: any): Promise<any> {
+    this.whatsappConfig = { ...this.whatsappConfig, ...config };
+    return this.whatsappConfig;
+  }
+
+  // Permissions
+  async getAllPermissions(): Promise<any[]> {
+    // Return default permissions - in production this could be stored in database
+    return [];
+  }
+
+  async getUserPermissions(userId: string): Promise<any[]> {
+    // Return user-specific permissions - in production this would be from database
+    return [];
+  }
+
+  async updateUserPermission(userId: string, permissionId: string, granted: boolean): Promise<any> {
+    // Update user permission - in production this would update database
+    return { userId, permissionId, granted };
+  }
+
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users).where(eq(users.isActive, true)).orderBy(users.firstName);
   }

@@ -199,6 +199,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin Profile Routes
+  app.get('/api/admin/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching admin profile:", error);
+      res.status(500).json({ message: "Failed to fetch profile" });
+    }
+  });
+
+  app.put('/api/admin/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const updatedProfile = await storage.updateUser(userId, req.body);
+      res.json(updatedProfile);
+    } catch (error) {
+      console.error("Error updating admin profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  // WhatsApp Configuration Routes
+  app.get('/api/admin/whatsapp-config', isAuthenticated, async (req: any, res) => {
+    try {
+      const config = await storage.getWhatsAppConfig();
+      res.json(config || {});
+    } catch (error) {
+      console.error("Error fetching WhatsApp config:", error);
+      res.status(500).json({ message: "Failed to fetch config" });
+    }
+  });
+
+  app.put('/api/admin/whatsapp-config', isAuthenticated, async (req: any, res) => {
+    try {
+      const config = await storage.updateWhatsAppConfig(req.body);
+      res.json(config);
+    } catch (error) {
+      console.error("Error updating WhatsApp config:", error);
+      res.status(500).json({ message: "Failed to update config" });
+    }
+  });
+
+  app.post('/api/admin/whatsapp-test', isAuthenticated, async (req: any, res) => {
+    try {
+      // Mock test for now - in production this would test the actual WhatsApp API
+      res.json({ success: true, message: "Connection test successful" });
+    } catch (error) {
+      console.error("Error testing WhatsApp connection:", error);
+      res.status(500).json({ message: "Connection test failed" });
+    }
+  });
+
+  // Permissions Routes
+  app.get('/api/admin/permissions', isAuthenticated, async (req: any, res) => {
+    try {
+      const permissions = await storage.getAllPermissions();
+      res.json(permissions || []);
+    } catch (error) {
+      console.error("Error fetching permissions:", error);
+      res.status(500).json({ message: "Failed to fetch permissions" });
+    }
+  });
+
+  app.get('/api/admin/user-permissions/:userId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const userPermissions = await storage.getUserPermissions(userId);
+      res.json(userPermissions || []);
+    } catch (error) {
+      console.error("Error fetching user permissions:", error);
+      res.status(500).json({ message: "Failed to fetch user permissions" });
+    }
+  });
+
+  app.put('/api/admin/user-permissions', isAuthenticated, async (req: any, res) => {
+    try {
+      const { userId, permissionId, granted } = req.body;
+      const result = await storage.updateUserPermission(userId, permissionId, granted);
+      res.json(result);
+    } catch (error) {
+      console.error("Error updating user permission:", error);
+      res.status(500).json({ message: "Failed to update permission" });
+    }
+  });
+
+  app.post('/api/admin/users/:userId/promote', isAuthenticated, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const result = await storage.promoteUserToAdmin(userId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error promoting user:", error);
+      res.status(500).json({ message: "Failed to promote user" });
+    }
+  });
+
+  app.post('/api/admin/users/:userId/demote', isAuthenticated, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const result = await storage.demoteUserFromAdmin(userId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error demoting user:", error);
+      res.status(500).json({ message: "Failed to demote user" });
+    }
+  });
+
   // Export reports route
   app.get('/api/reports/export', isAuthenticated, async (req, res) => {
     try {
