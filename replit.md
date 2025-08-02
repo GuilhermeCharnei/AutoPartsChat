@@ -8,6 +8,11 @@ This is a full-stack web application for automating sales through WhatsApp for a
 
 Preferred communication style: Simple, everyday language.
 
+### Recent User Requests (January 2025)
+- Implemented resizable divider functionality between conversation list and chat area
+- Added "Conversas Ativas" (Active Conversations) dedicated tab in admin panel
+- Enhanced layout flexibility with toggle between fixed and resizable layouts
+
 ## System Architecture
 
 ### Frontend Architecture

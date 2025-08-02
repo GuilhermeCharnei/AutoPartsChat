@@ -2,12 +2,13 @@ import { useState } from "react";
 import { UsersTab } from "./users-tab";
 import { InventoryTab } from "./inventory-tab-new";
 import { ReportsTab } from "./reports-tab";
+import { ActiveConversationsTab } from "./active-conversations-tab";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 
 export function AdminPanel() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'inventory' | 'reports'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'conversations' | 'users' | 'inventory' | 'reports'>('dashboard');
 
   const { data: stats } = useQuery({
     queryKey: ['/api/dashboard/stats'],
@@ -110,6 +111,16 @@ export function AdminPanel() {
               Visão Geral
             </button>
             <button
+              onClick={() => setActiveTab('conversations')}
+              className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                activeTab === 'conversations'
+                  ? 'border-green-500 text-green-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Conversas Ativas
+            </button>
+            <button
               onClick={() => setActiveTab('users')}
               className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === 'users'
@@ -166,6 +177,11 @@ export function AdminPanel() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+        {activeTab === 'conversations' && (
+          <div className="h-full">
+            <ActiveConversationsTab />
           </div>
         )}
         {activeTab === 'users' && (

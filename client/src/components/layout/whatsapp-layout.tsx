@@ -3,10 +3,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { AdminPanel } from "@/components/admin/admin-panel";
 import { ChatList } from "@/components/chat/chat-list";
 import { ChatConversation } from "@/components/chat/chat-conversation";
+import { ResizableDivider } from "@/components/ui/resizable-divider";
 
 export function WhatsAppLayout() {
   const { user } = useAuth();
   const [selectedConversationId, setSelectedConversationId] = useState<number | null>(null);
+  const [useResizableLayout, setUseResizableLayout] = useState(false);
 
   return (
     <div className="h-screen flex flex-col bg-whatsapp-bg font-whatsapp overflow-hidden">
@@ -40,6 +42,13 @@ export function WhatsAppLayout() {
             )}
           </div>
           <button 
+            onClick={() => setUseResizableLayout(!useResizableLayout)}
+            className="text-white/80 hover:text-white p-1 mr-2"
+            title={useResizableLayout ? "Layout fixo" : "Layout redimensionável"}
+          >
+            <i className="fas fa-expand-arrows-alt text-sm"></i>
+          </button>
+          <button 
             onClick={() => window.location.href = '/api/logout'}
             className="text-white/80 hover:text-white p-1"
           >
@@ -55,18 +64,41 @@ export function WhatsAppLayout() {
           <AdminPanel />
         </div>
 
-        {/* Chat List Panel */}
-        <div className="w-full sm:w-80 lg:w-80 flex-shrink-0 border-r border-border-light flex flex-col min-h-0">
-          <ChatList 
-            selectedConversationId={selectedConversationId}
-            onSelectConversation={setSelectedConversationId}
-          />
-        </div>
+        {/* Chat Area with conditional layout */}
+        {useResizableLayout ? (
+          <div className="flex-1 flex min-h-0">
+            <ResizableDivider
+              leftPanel={
+                <ChatList 
+                  selectedConversationId={selectedConversationId}
+                  onSelectConversation={setSelectedConversationId}
+                />
+              }
+              rightPanel={
+                <ChatConversation conversationId={selectedConversationId} />
+              }
+              defaultLeftWidth={35}
+              minLeftWidth={20}
+              maxLeftWidth={60}
+              className="flex-1"
+            />
+          </div>
+        ) : (
+          <>
+            {/* Chat List Panel */}
+            <div className="w-full sm:w-80 lg:w-80 flex-shrink-0 border-r border-border-light flex flex-col min-h-0">
+              <ChatList 
+                selectedConversationId={selectedConversationId}
+                onSelectConversation={setSelectedConversationId}
+              />
+            </div>
 
-        {/* Chat Conversation Area */}
-        <div className={`flex-1 flex flex-col min-h-0 ${selectedConversationId ? 'flex' : 'hidden sm:flex'}`}>
-          <ChatConversation conversationId={selectedConversationId} />
-        </div>
+            {/* Chat Conversation Area */}
+            <div className={`flex-1 flex flex-col min-h-0 ${selectedConversationId ? 'flex' : 'hidden sm:flex'}`}>
+              <ChatConversation conversationId={selectedConversationId} />
+            </div>
+          </>
+        )}
 
         {/* Mobile Admin Panel Toggle */}
         <div className="lg:hidden fixed bottom-4 right-4 z-50">
