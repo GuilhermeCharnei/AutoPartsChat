@@ -5,7 +5,6 @@ import {
   Users, 
   Package, 
   BarChart3,
-  Download,
   ChevronLeft,
   ChevronRight,
   Settings,
@@ -183,10 +182,6 @@ export function AdminPanel() {
                 Gerencie e monitore o sistema de vendas WhatsApp
               </p>
             </div>
-            <Button className="bg-green-600 hover:bg-green-700 text-white">
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
-            </Button>
           </div>
         </div>
 

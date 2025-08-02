@@ -1,12 +1,8 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { ExportModal } from "./export-modal";
-import { Download, TrendingUp, Package, MessageCircle, Users } from "lucide-react";
+import { TrendingUp, Package, MessageCircle, Users } from "lucide-react";
 import { Product, Conversation, Order } from "@shared/schema";
 
 export function ReportsTab() {
-  const [showExportModal, setShowExportModal] = useState(false);
 
   const { data: stats } = useQuery<{ totalSales: number }>({
     queryKey: ['/api/dashboard/stats'],
@@ -31,13 +27,6 @@ export function ReportsTab() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-medium text-gray-900">Relatórios e Análises</h3>
-        <Button 
-          onClick={() => setShowExportModal(true)}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          <Download className="w-4 h-4 mr-2" />
-          Exportar Relatórios
-        </Button>
       </div>
 
       {/* Summary Cards */}
@@ -141,11 +130,6 @@ export function ReportsTab() {
           </div>
         </div>
       </div>
-
-      <ExportModal 
-        isOpen={showExportModal} 
-        onClose={() => setShowExportModal(false)} 
-      />
     </div>
   );
 }
