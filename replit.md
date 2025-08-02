@@ -14,6 +14,7 @@ Preferred communication style: Simple, everyday language.
 - Enhanced layout flexibility with toggle between fixed and resizable layouts
 - Created dedicated Dashboard tab with comprehensive metrics and performance indicators
 - Separated dashboard analytics from conversation management for better organization
+- Redesigned admin panel with clean sidebar navigation and improved layout structure
 
 ## System Architecture
 

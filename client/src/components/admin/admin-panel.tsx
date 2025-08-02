@@ -1,4 +1,14 @@
 import { useState } from "react";
+import { 
+  LayoutDashboard, 
+  MessageCircle, 
+  Users, 
+  Package, 
+  BarChart3,
+  Download,
+  ChevronLeft,
+  ChevronRight
+} from "lucide-react";
 import { UsersTab } from "./users-tab";
 import { InventoryTab } from "./inventory-tab-new";
 import { ReportsTab } from "./reports-tab";
@@ -6,182 +16,152 @@ import { ActiveConversationsTab } from "./active-conversations-tab";
 import { DashboardTab } from "./dashboard-tab";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
 
 export function AdminPanel() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'conversations' | 'users' | 'inventory' | 'reports'>('dashboard');
-
-  const { data: stats } = useQuery({
-    queryKey: ['/api/dashboard/stats'],
-  });
-
-  const { data: users = [] } = useQuery({
-    queryKey: ['/api/users'],
-  });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const { data: conversations = [] } = useQuery({
     queryKey: ['/api/conversations'],
   });
 
   const activeConversations = (conversations as any[]).filter((c: any) => c.status === 'active').length;
-  const totalUploads = parseInt((stats as any)?.totalProducts || '0');
-  const aiResolution = 76; // Calculated based on bot vs human responses
+
+  const menuItems = [
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+      badge: null
+    },
+    {
+      id: 'conversations',
+      label: 'Conversas Ativas',
+      icon: MessageCircle,
+      badge: activeConversations > 0 ? activeConversations : null
+    },
+    {
+      id: 'users',
+      label: 'Usuários',
+      icon: Users,
+      badge: null
+    },
+    {
+      id: 'inventory',
+      label: 'Inventário',
+      icon: Package,
+      badge: null
+    },
+    {
+      id: 'reports',
+      label: 'Relatórios',
+      icon: BarChart3,
+      badge: null
+    }
+  ];
+
+  const getPageTitle = () => {
+    switch (activeTab) {
+      case 'dashboard': return 'Dashboard';
+      case 'conversations': return 'Conversas Ativas';
+      case 'users': return 'Gerenciar Usuários';
+      case 'inventory': return 'Gerenciar Inventário';
+      case 'reports': return 'Relatórios e Analytics';
+      default: return 'Dashboard';
+    }
+  };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 overflow-hidden">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex-shrink-0">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Dashboard Administrativo</h1>
-          <Button className="bg-green-600 hover:bg-green-700 text-white text-sm">
-            <Download className="w-4 h-4 mr-2" />
-            Exportar Relatório
-          </Button>
+    <div className="h-full flex bg-gray-50 overflow-hidden">
+      {/* Sidebar */}
+      <div className={`bg-white border-r border-gray-200 flex-shrink-0 transition-all duration-300 ${
+        sidebarCollapsed ? 'w-16' : 'w-64'
+      }`}>
+        <div className="h-full flex flex-col">
+          {/* Sidebar Header */}
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              {!sidebarCollapsed && (
+                <h2 className="text-lg font-semibold text-gray-900">Admin Panel</h2>
+              )}
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                {sidebarCollapsed ? (
+                  <ChevronRight className="w-5 h-5 text-gray-500" />
+                ) : (
+                  <ChevronLeft className="w-5 h-5 text-gray-500" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Navigation Menu */}
+          <nav className="flex-1 p-4">
+            <ul className="space-y-2">
+              {menuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                
+                return (
+                  <li key={item.id}>
+                    <button
+                      onClick={() => setActiveTab(item.id as any)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                        isActive
+                          ? 'bg-green-50 text-green-700 border border-green-200'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Icon className={`w-5 h-5 flex-shrink-0 ${
+                        isActive ? 'text-green-600' : 'text-gray-500'
+                      }`} />
+                      {!sidebarCollapsed && (
+                        <>
+                          <span className="font-medium">{item.label}</span>
+                          {item.badge && (
+                            <span className="ml-auto bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                              {item.badge}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="bg-white px-4 sm:px-6 py-4 border-b border-gray-200 flex-shrink-0">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-600">Usuários Ativos</p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900">{(users as any[]).length}</p>
-                <p className="text-xs text-green-600">+2 desde o último mês</p>
-              </div>
-              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <i className="fas fa-users text-blue-600 text-xs sm:text-sm"></i>
-              </div>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Main Header */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{getPageTitle()}</h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Gerencie e monitore o sistema de vendas WhatsApp
+              </p>
             </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Uploads (Mês)</p>
-                <p className="text-2xl font-bold text-gray-900">{totalUploads}</p>
-                <p className="text-xs text-green-600">+5 desde o último mês</p>
-              </div>
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <i className="fas fa-upload text-green-600"></i>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Chats Ativos</p>
-                <p className="text-2xl font-bold text-gray-900">{activeConversations}</p>
-                <p className="text-xs text-green-600">+3 desde a última hora</p>
-              </div>
-              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                <i className="fas fa-comments text-purple-600"></i>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Resolução IA</p>
-                <p className="text-2xl font-bold text-gray-900">{aiResolution}%</p>
-                <p className="text-xs text-green-600">+2% desde ontem</p>
-              </div>
-              <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                <i className="fas fa-robot text-orange-600"></i>
-              </div>
-            </div>
+            <Button className="bg-green-600 hover:bg-green-700 text-white">
+              <Download className="w-4 h-4 mr-2" />
+              Exportar
+            </Button>
           </div>
         </div>
-      </div>
 
-      {/* Navigation Tabs */}
-      <div className="bg-white border-b border-gray-200 flex-shrink-0">
-        <div className="px-4 sm:px-6">
-          <div className="flex space-x-4 sm:space-x-8 overflow-x-auto scrollbar-thin">
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                activeTab === 'dashboard'
-                  ? 'border-green-500 text-green-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Dashboard
-            </button>
-            <button
-              onClick={() => setActiveTab('conversations')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                activeTab === 'conversations'
-                  ? 'border-green-500 text-green-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Conversas Ativas
-            </button>
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                activeTab === 'users'
-                  ? 'border-green-500 text-green-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Usuários
-            </button>
-            <button
-              onClick={() => setActiveTab('inventory')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                activeTab === 'inventory'
-                  ? 'border-green-500 text-green-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Uploads
-            </button>
-            <button
-              onClick={() => setActiveTab('reports')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                activeTab === 'reports'
-                  ? 'border-green-500 text-green-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Relatórios
-            </button>
-          </div>
+        {/* Content Area */}
+        <div className="flex-1 min-h-0">
+          {activeTab === 'dashboard' && <DashboardTab />}
+          {activeTab === 'conversations' && <ActiveConversationsTab />}
+          {activeTab === 'users' && <UsersTab />}
+          {activeTab === 'inventory' && <InventoryTab />}
+          {activeTab === 'reports' && <ReportsTab />}
         </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 min-h-0 bg-white">
-        {activeTab === 'dashboard' && (
-          <div className="h-full">
-            <DashboardTab />
-          </div>
-        )}
-        {activeTab === 'conversations' && (
-          <div className="h-full">
-            <ActiveConversationsTab />
-          </div>
-        )}
-        {activeTab === 'users' && (
-          <div className="h-full overflow-y-auto">
-            <UsersTab />
-          </div>
-        )}
-        {activeTab === 'inventory' && (
-          <div className="h-full overflow-y-auto">
-            <InventoryTab />
-          </div>
-        )}
-        {activeTab === 'reports' && (
-          <div className="h-full overflow-y-auto">
-            <ReportsTab />
-          </div>
-        )}
       </div>
     </div>
   );
