@@ -4,12 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Sparkles, Key, AlertTriangle, CheckCircle } from "lucide-react";
+import { Sparkles, AlertTriangle, CheckCircle } from "lucide-react";
 
 export function OpenAIConfigTab() {
   const { toast } = useToast();
@@ -90,45 +89,35 @@ export function OpenAIConfigTab() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Sparkles className="h-6 w-6" />
-            Configuração OpenAI
-          </h2>
-          <p className="text-muted-foreground">
-            Configure a integração com a API da OpenAI (Apenas para usuários DEV)
-          </p>
-        </div>
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-medium text-gray-900">Configuração OpenAI API</h3>
         <div className="flex gap-2">
           <Button
             onClick={() => testConfigMutation.mutate()}
             disabled={testConfigMutation.isPending || !(config as any)?.isActive}
             variant="outline"
+            size="sm"
           >
             {testConfigMutation.isPending ? "Testando..." : "Testar API"}
           </Button>
           <Button
             onClick={() => setIsEditing(!isEditing)}
             variant={isEditing ? "outline" : "default"}
+            size="sm"
+            className="bg-green-600 hover:bg-green-700"
           >
             {isEditing ? "Cancelar" : "Editar"}
           </Button>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Key className="h-5 w-5" />
-            Configurações da API
-          </CardTitle>
-          <CardDescription>
-            Configure sua chave API da OpenAI e parâmetros do modelo
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="bg-white rounded-lg shadow border">
+        <div className="px-6 py-4 border-b">
+          <h4 className="text-lg font-medium text-gray-900">Configurações da API</h4>
+          <p className="text-sm text-gray-500 mt-1">Configure sua chave API da OpenAI e parâmetros do modelo</p>
+        </div>
+        <div className="p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -223,24 +212,33 @@ export function OpenAIConfigTab() {
               )}
             </div>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {(config as any)?.isActive ? (
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="flex items-center gap-2 pt-4">
+      {/* Status Card */}
+      <div className={`mt-6 rounded-lg border p-4 ${
+        (config as any)?.isActive 
+          ? 'border-green-200 bg-green-50' 
+          : 'border-orange-200 bg-orange-50'
+      }`}>
+        <div className="flex items-center gap-2">
+          {(config as any)?.isActive ? (
             <CheckCircle className="h-5 w-5 text-green-600" />
-            <span className="text-green-800">API da OpenAI está ativa e configurada</span>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="flex items-center gap-2 pt-4">
+          ) : (
             <AlertTriangle className="h-5 w-5 text-orange-600" />
-            <span className="text-orange-800">API da OpenAI está inativa</span>
-          </CardContent>
-        </Card>
-      )}
+          )}
+          <span className={
+            (config as any)?.isActive 
+              ? 'text-green-800' 
+              : 'text-orange-800'
+          }>
+            {(config as any)?.isActive 
+              ? 'API da OpenAI está ativa e configurada'
+              : 'API da OpenAI está inativa'
+            }
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

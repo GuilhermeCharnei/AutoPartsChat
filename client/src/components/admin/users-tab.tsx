@@ -2,19 +2,29 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { User } from "@shared/schema";
 import { AddUserModal } from "./add-user-modal";
+import { Search, User as UserIcon, UserPlus, Edit, Trash2 } from "lucide-react";
 
 export function UsersTab() {
   const { toast } = useToast();
   const [showAddUser, setShowAddUser] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ['/api/users'],
   });
+
+  // Filtrar usuários baseado na busca
+  const filteredUsers = users.filter(user =>
+    user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const updatePermissionsMutation = useMutation({
     mutationFn: async ({ userId, permissions }: { userId: string; permissions: any }) => {
@@ -63,18 +73,21 @@ export function UsersTab() {
         {/* Search Bar */}
         <div className="flex items-center justify-between mb-4">
           <div className="relative flex-1 max-w-md">
-            <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-            <input
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
               type="text"
               placeholder="Buscar usuário por nome ou email..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
             />
           </div>
           <Button 
             onClick={() => setShowAddUser(true)}
             className="bg-green-600 hover:bg-green-700 text-white ml-4"
           >
-            + Novo Usuário
+            <UserPlus className="w-4 h-4 mr-2" />
+            Novo Usuário
           </Button>
         </div>
       </div>
@@ -99,7 +112,7 @@ export function UsersTab() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user, index) => (
+            {filteredUsers.map((user, index) => (
               <tr key={user.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
@@ -111,7 +124,7 @@ export function UsersTab() {
                       />
                     ) : (
                       <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-3">
-                        <i className="fas fa-user text-gray-400 text-sm"></i>
+                        <UserIcon className="w-4 h-4 text-gray-400" />
                       </div>
                     )}
                     <div>

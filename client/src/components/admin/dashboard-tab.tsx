@@ -84,11 +84,11 @@ export function DashboardTab() {
   ];
 
   return (
-    <div className="h-full overflow-y-auto p-4 sm:p-6 bg-gray-50">
+    <div className="p-6">
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Dashboard</h2>
-        <p className="text-gray-600">Visão geral do sistema de vendas WhatsApp</p>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Dashboard</h3>
+        <p className="text-sm text-gray-500">Visão geral do sistema de vendas WhatsApp</p>
       </div>
 
       {/* Stats Cards */}
