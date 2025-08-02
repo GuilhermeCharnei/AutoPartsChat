@@ -21,17 +21,17 @@ export function AdminPanel() {
     queryKey: ['/api/conversations'],
   });
 
-  const activeConversations = conversations.filter((c: any) => c.status === 'active').length;
+  const activeConversations = (conversations as any[]).filter((c: any) => c.status === 'active').length;
   const totalUploads = parseInt((stats as any)?.totalProducts || '0');
   const aiResolution = 76; // Calculated based on bot vs human responses
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-gray-900">Dashboard Administrativo</h1>
-          <Button className="bg-green-600 hover:bg-green-700 text-white">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Dashboard Administrativo</h1>
+          <Button className="bg-green-600 hover:bg-green-700 text-white text-sm">
             <Download className="w-4 h-4 mr-2" />
             Exportar Relatório
           </Button>
@@ -39,17 +39,17 @@ export function AdminPanel() {
       </div>
 
       {/* KPI Cards */}
-      <div className="bg-white p-6 border-b border-gray-200">
-        <div className="grid grid-cols-4 gap-6">
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
+      <div className="bg-white px-4 sm:px-6 py-4 border-b border-gray-200">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Usuários Ativos</p>
-                <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Usuários Ativos</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">{(users as any[]).length}</p>
                 <p className="text-xs text-green-600">+2 desde o último mês</p>
               </div>
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <i className="fas fa-users text-blue-600"></i>
+              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <i className="fas fa-users text-blue-600 text-xs sm:text-sm"></i>
               </div>
             </div>
           </div>
@@ -148,16 +148,16 @@ export function AdminPanel() {
         {activeTab === 'dashboard' && (
           <div className="p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Visão Geral do Sistema</h3>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="bg-gray-50 rounded-lg p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
                 <h4 className="font-medium text-gray-900 mb-2">Atividade Recente</h4>
                 <div className="space-y-2 text-sm text-gray-600">
-                  <p>• {conversations.length} conversas hoje</p>
+                  <p>• {(conversations as any[]).length} conversas hoje</p>
                   <p>• {totalUploads} produtos no catálogo</p>
-                  <p>• {users.length} usuários ativos</p>
+                  <p>• {(users as any[]).length} usuários ativos</p>
                 </div>
               </div>
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
                 <h4 className="font-medium text-gray-900 mb-2">Performance IA</h4>
                 <div className="space-y-2 text-sm text-gray-600">
                   <p>• 76% resoluções automáticas</p>

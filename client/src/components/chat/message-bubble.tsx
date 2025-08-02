@@ -38,9 +38,9 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   if (isCustomer) {
     return (
       <div className={getContainerClasses()}>
-        <div className="max-w-md">
+        <div className="max-w-xs sm:max-w-md">
           <div className={getBubbleClasses()}>
-            <p className="text-sm text-text-primary">{message.content}</p>
+            <p className="text-sm text-text-primary break-words">{message.content}</p>
           </div>
           <div className="flex items-center justify-end gap-1 mt-1">
             <span className="text-xs text-text-secondary">
@@ -64,25 +64,27 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           <i className="fas fa-user"></i>
         </div>
       )}
-      <div className="max-w-md">
+      <div className="max-w-xs sm:max-w-md">
         <div className={getBubbleClasses()}>
           {isSeller && (
             <div className="text-xs text-blue-600 font-semibold mb-1">
               {message.senderId ? 'Vendedor' : 'Sistema'}
             </div>
           )}
-          <p className="text-sm text-text-primary">{message.content}</p>
+          <p className="text-sm text-text-primary break-words">{message.content}</p>
           
           {/* Product metadata rendering */}
           {message.metadata && message.messageType === 'product' && (
             <div className="mt-2 space-y-2">
-              {Array.isArray((message.metadata as any)?.products) && (message.metadata as any)?.products?.map((product: any, index: number) => (
-                <div key={index} className="border border-gray-200 rounded p-2">
-                  <div className="font-semibold text-sm">{product.name}</div>
-                  <div className="text-xs text-text-secondary">{product.description}</div>
-                  <div className="text-whatsapp font-bold">R$ {product.price}</div>
-                </div>
-              ))}
+              {Array.isArray((message.metadata as any)?.products) && 
+                (message.metadata as any)?.products?.map((product: any, index: number) => (
+                  <div key={index} className="border border-gray-200 rounded p-2">
+                    <div className="font-semibold text-sm">{product.name}</div>
+                    <div className="text-xs text-text-secondary">{product.description}</div>
+                    <div className="text-whatsapp font-bold">R$ {product.price}</div>
+                  </div>
+                ))
+              }
             </div>
           )}
         </div>

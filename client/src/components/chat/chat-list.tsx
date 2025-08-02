@@ -29,11 +29,11 @@ export function ChatList({ selectedConversationId, onSelectConversation }: ChatL
   }
 
   return (
-    <div className="w-96 bg-white border-r border-border-light flex flex-col">
+    <div className="h-full bg-white flex flex-col">
       {/* Chat List Header */}
-      <div className="bg-whatsapp-panel p-4 border-b border-border-light">
+      <div className="bg-whatsapp-panel px-3 sm:px-4 py-3 border-b border-border-light">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-text-primary">Conversas Ativas</h2>
+          <h2 className="text-sm sm:text-lg font-semibold text-text-primary">Conversas Ativas</h2>
           <button className="text-text-secondary hover:text-text-primary">
             <i className="fas fa-ellipsis-v"></i>
           </button>
@@ -64,7 +64,7 @@ export function ChatList({ selectedConversationId, onSelectConversation }: ChatL
             <div
               key={conversation.id}
               onClick={() => onSelectConversation(conversation.id)}
-              className={`p-3 border-b border-border-light cursor-pointer transition-colors ${
+              className={`px-3 sm:px-4 py-3 border-b border-border-light cursor-pointer transition-colors ${
                 selectedConversationId === conversation.id
                   ? 'bg-whatsapp-light'
                   : 'hover:bg-gray-50'

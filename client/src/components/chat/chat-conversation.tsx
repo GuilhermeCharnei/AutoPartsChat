@@ -129,51 +129,59 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
   return (
     <div className="flex-1 flex flex-col bg-chat-incoming">
       {/* Chat Header */}
-      <div className="bg-whatsapp-panel p-4 border-b border-border-light flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="bg-whatsapp-panel px-4 py-3 border-b border-border-light flex items-center justify-between">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           {conversation?.customerAvatar ? (
             <img
               src={conversation.customerAvatar}
               alt={conversation.customerName}
-              className="w-10 h-10 rounded-full object-cover"
+              className="w-8 sm:w-10 h-8 sm:h-10 rounded-full object-cover flex-shrink-0"
             />
           ) : (
-            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-              <i className="fas fa-user text-gray-400"></i>
+            <div className="w-8 sm:w-10 h-8 sm:h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-user text-gray-400 text-sm"></i>
             </div>
           )}
-          <div>
-            <h3 className="font-semibold text-text-primary">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold text-text-primary text-sm sm:text-base truncate">
               {conversation?.customerName || 'Cliente'}
             </h3>
-            <p className="text-sm text-whatsapp">
+            <p className="text-xs sm:text-sm text-whatsapp">
               {conversation?.status === 'active' ? 'Online' : 'Offline'}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowTransferModal(true)}
-            className="text-xs"
+            className="text-xs px-2 sm:px-3 hidden sm:flex"
           >
             <UserCheck className="w-3 h-3 mr-1" />
             Transferir
           </Button>
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowTransferModal(true)}
+            className="text-xs px-2 sm:hidden"
+          >
+            <UserCheck className="w-3 h-3" />
+          </Button>
+          <Button
             size="sm"
             onClick={() => setShowFinalizeModal(true)}
-            className="bg-green-600 hover:bg-green-700 text-white text-xs"
+            className="bg-green-600 hover:bg-green-700 text-white text-xs px-2 sm:px-3"
           >
-            <Package className="w-3 h-3 mr-1" />
-            Finalizar Pedido
+            <Package className="w-3 h-3 sm:mr-1" />
+            <span className="hidden sm:inline">Finalizar</span>
           </Button>
         </div>
       </div>
 
       {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto scrollbar-thin px-2 sm:px-4 py-4 space-y-4">
         {messages.length === 0 ? (
           <div className="text-center text-text-secondary py-8">
             <i className="fas fa-comment-dots text-2xl mb-2"></i>
@@ -188,7 +196,7 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
       </div>
 
       {/* Message Input */}
-      <div className="bg-whatsapp-panel p-4 border-t border-border-light">
+      <div className="bg-whatsapp-panel px-2 sm:px-4 py-3 border-t border-border-light">
         <form onSubmit={handleSendMessage} className="flex items-center gap-3">
           <button type="button" className="text-text-secondary hover:text-text-primary">
             <i className="fas fa-paperclip"></i>
@@ -215,19 +223,25 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
         </form>
         
         {/* Quick Actions */}
-        <div className="flex gap-2 mt-3">
-          <Button variant="outline" size="sm" className="text-xs">
-            <i className="fas fa-plus mr-1"></i> Adicionar Produto
+        <div className="flex flex-wrap gap-2 mt-3">
+          <Button variant="outline" size="sm" className="text-xs flex-shrink-0">
+            <i className="fas fa-plus mr-1"></i> 
+            <span className="hidden sm:inline">Adicionar Produto</span>
+            <span className="sm:hidden">Produto</span>
           </Button>
-          <Button variant="outline" size="sm" className="text-xs">
-            <i className="fas fa-calculator mr-1"></i> Calcular Frete
+          <Button variant="outline" size="sm" className="text-xs flex-shrink-0">
+            <i className="fas fa-calculator mr-1"></i>
+            <span className="hidden sm:inline">Calcular Frete</span>
+            <span className="sm:hidden">Frete</span>
           </Button>
           <Button 
             size="sm" 
             onClick={() => setShowFinalizeModal(true)}
-            className="bg-whatsapp hover:bg-whatsapp-hover text-white text-xs"
+            className="bg-whatsapp hover:bg-whatsapp-hover text-white text-xs flex-shrink-0"
           >
-            <i className="fas fa-check mr-1"></i> Finalizar Pedido
+            <i className="fas fa-check mr-1"></i>
+            <span className="hidden sm:inline">Finalizar Pedido</span>
+            <span className="sm:hidden">Finalizar</span>
           </Button>
         </div>
       </div>
