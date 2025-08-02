@@ -125,7 +125,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   // WhatsApp Configuration
-  private whatsappConfig: any = {};
+  private whatsappConfig: any = {
+    bot: {
+      aiEnabled: false,
+      companyName: 'AutoPeças Brasil',
+      specialties: 'Peças originais, Filtros, Óleos, Pneus, Baterias',
+      policies: 'Garantia de 90 dias em peças nacionais, Garantia de 1 ano em peças originais, Entrega grátis para pedidos acima de R$ 200',
+      promotions: ''
+    }
+  };
 
   async getWhatsAppConfig(): Promise<any> {
     return this.whatsappConfig;

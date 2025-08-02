@@ -9,7 +9,8 @@ import { Message, Conversation } from "@shared/schema";
 import { MessageBubble } from "./message-bubble";
 import { ChatTransferModal } from "@/components/admin/chat-transfer-modal";
 import { FinalizeOrderModal } from "@/components/admin/finalize-order-modal";
-import { UserCheck, Package } from "lucide-react";
+import { AIChatIndicator } from "./ai-chat-indicator";
+import { UserCheck, Package, Bot, Sparkles } from "lucide-react";
 
 interface ChatConversationProps {
   conversationId: number | null;
@@ -20,6 +21,7 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const [isAITyping, setIsAITyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -34,10 +36,17 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
     refetchInterval: 2000, // Refresh every 2 seconds
   });
 
+  // Query WhatsApp config to check if AI is enabled
+  const { data: whatsappConfig } = useQuery({
+    queryKey: ['/api/admin/whatsapp-config'],
+  });
+
+  const isAIEnabled = (whatsappConfig as any)?.bot?.aiEnabled || false;
+
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
       if (!conversationId) throw new Error("No conversation selected");
-      return apiRequest('POST', `/api/conversations/${conversationId}/messages`, {
+      return apiRequest(`/api/conversations/${conversationId}/messages`, 'POST', {
         content,
         senderType: 'seller',
         messageType: 'text',
@@ -46,6 +55,11 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/conversations', conversationId, 'messages'] });
       setMessageText("");
+      
+      // Trigger AI response if enabled
+      if (isAIEnabled) {
+        triggerAIResponse(messageText);
+      }
     },
     onError: () => {
       toast({
@@ -55,6 +69,39 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
       });
     },
   });
+
+  const aiResponseMutation = useMutation({
+    mutationFn: async (message: string) => {
+      if (!conversationId) throw new Error("No conversation selected");
+      return apiRequest('/api/chat/ai-response', 'POST', {
+        message,
+        conversationId,
+        customerName: conversation?.customerName || 'Cliente',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations', conversationId, 'messages'] });
+      setIsAITyping(false);
+    },
+    onError: () => {
+      setIsAITyping(false);
+      toast({
+        title: "Erro",
+        description: "Falha na resposta da IA",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const triggerAIResponse = (userMessage: string) => {
+    if (!isAIEnabled) return;
+    
+    setIsAITyping(true);
+    // Delay to simulate thinking time
+    setTimeout(() => {
+      aiResponseMutation.mutate(userMessage);
+    }, 1500);
+  };
 
   // WebSocket connection for real-time updates
   useEffect(() => {
@@ -146,9 +193,12 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
             <h3 className="font-semibold text-text-primary text-sm sm:text-base truncate">
               {conversation?.customerName || 'Cliente'}
             </h3>
-            <p className="text-xs sm:text-sm text-whatsapp">
-              {conversation?.status === 'active' ? 'Online' : 'Offline'}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs sm:text-sm text-whatsapp">
+                {conversation?.status === 'active' ? 'Online' : 'Offline'}
+              </p>
+              <AIChatIndicator isAIEnabled={isAIEnabled} isTyping={isAITyping} />
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">

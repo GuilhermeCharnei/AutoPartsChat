@@ -48,7 +48,12 @@ export function WhatsAppSetupTab() {
       start: '08:00',
       end: '18:00'
     },
-    fallbackMessage: 'Desculpe, não entendi sua mensagem. Um atendente humano irá responder em breve.'
+    fallbackMessage: 'Desculpe, não entendi sua mensagem. Um atendente humano irá responder em breve.',
+    aiEnabled: false,
+    companyName: 'AutoPeças Brasil',
+    specialties: 'Peças originais, Filtros, Óleos, Pneus, Baterias',
+    policies: 'Garantia de 90 dias em peças nacionais, Garantia de 1 ano em peças originais, Entrega grátis para pedidos acima de R$ 200',
+    promotions: ''
   });
 
   const [messageTemplates, setMessageTemplates] = useState({
@@ -117,6 +122,32 @@ export function WhatsAppSetupTab() {
 
   const handleTestConnection = () => {
     testConnectionMutation.mutate();
+  };
+
+  const testAIMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('/api/admin/test-ai', 'POST', { 
+        message: 'Preciso de filtro de óleo para Civic 2018',
+        botConfig 
+      });
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Teste de IA concluído",
+        description: `Resposta: ${data.response?.substring(0, 100) || 'Teste realizado com sucesso'}...`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro no teste de IA",
+        description: "Verifique se a chave OpenAI está configurada.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleTestAI = () => {
+    testAIMutation.mutate();
   };
 
   if (isLoading) {
@@ -342,6 +373,86 @@ export function WhatsAppSetupTab() {
                     className="mt-1"
                   />
                 </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="autoResponse"
+                    checked={botConfig.autoResponse}
+                    onCheckedChange={(checked) => setBotConfig(prev => ({ ...prev, autoResponse: checked }))}
+                  />
+                  <Label htmlFor="autoResponse">Respostas Automáticas</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="aiEnabled"
+                    checked={botConfig.aiEnabled}
+                    onCheckedChange={(checked) => setBotConfig(prev => ({ ...prev, aiEnabled: checked }))}
+                  />
+                  <Label htmlFor="aiEnabled">IA Inteligente (OpenAI)</Label>
+                </div>
+
+                {botConfig.aiEnabled && (
+                  <div className="space-y-4 p-4 border rounded-lg bg-blue-50">
+                    <h4 className="font-medium text-blue-900">Configuração da IA</h4>
+                    
+                    <div>
+                      <Label htmlFor="companyName">Nome da Empresa</Label>
+                      <Input
+                        id="companyName"
+                        value={botConfig.companyName}
+                        onChange={(e) => setBotConfig(prev => ({ ...prev, companyName: e.target.value }))}
+                        placeholder="AutoPeças Brasil"
+                        className="mt-1"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="specialties">Especialidades (separadas por vírgula)</Label>
+                      <Input
+                        id="specialties"
+                        value={botConfig.specialties}
+                        onChange={(e) => setBotConfig(prev => ({ ...prev, specialties: e.target.value }))}
+                        placeholder="Peças originais, Filtros, Óleos, Pneus, Baterias"
+                        className="mt-1"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="policies">Políticas da Empresa</Label>
+                      <Textarea
+                        id="policies"
+                        value={botConfig.policies}
+                        onChange={(e) => setBotConfig(prev => ({ ...prev, policies: e.target.value }))}
+                        placeholder="Garantia de 90 dias em peças nacionais, Entrega grátis acima de R$ 200..."
+                        rows={3}
+                        className="mt-1"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="promotions">Promoções Ativas</Label>
+                      <Textarea
+                        id="promotions"
+                        value={botConfig.promotions}
+                        onChange={(e) => setBotConfig(prev => ({ ...prev, promotions: e.target.value }))}
+                        placeholder="20% de desconto em filtros, Frete grátis nesta semana..."
+                        rows={2}
+                        className="mt-1"
+                      />
+                    </div>
+
+                    <Button 
+                      onClick={handleTestAI}
+                      variant="outline"
+                      disabled={testAIMutation.isPending}
+                      className="w-full"
+                    >
+                      <Bot className="h-4 w-4 mr-2" />
+                      {testAIMutation.isPending ? 'Testando...' : 'Testar IA do Bot'}
+                    </Button>
+                  </div>
+                )}
 
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="flex items-center space-x-2 mb-4">

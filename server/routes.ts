@@ -308,6 +308,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Bot Routes
+  app.post('/api/admin/test-ai', isAuthenticated, async (req: any, res) => {
+    try {
+      const { message, botConfig } = req.body;
+      const { aiBot } = await import('./openai');
+      
+      // Atualizar conhecimento do negócio
+      if (botConfig) {
+        aiBot.updateBusinessKnowledge({
+          companyName: botConfig.companyName || 'AutoPeças Brasil',
+          businessType: 'Distribuidora de autopeças',
+          specialties: botConfig.specialties?.split(',').map((s: string) => s.trim()) || [],
+          commonProducts: ['Filtro de óleo', 'Pastilha de freio', 'Amortecedor'],
+          workingHours: botConfig.workingHours || 'Segunda a Sexta: 8h às 18h',
+          policies: botConfig.policies?.split(',').map((p: string) => p.trim()) || [],
+          promotions: botConfig.promotions?.split(',').map((p: string) => p.trim()) || [],
+        });
+      }
+
+      const products = await storage.getAllProducts();
+      
+      const response = await aiBot.generateResponse(
+        message || 'Olá, preciso de ajuda com autopeças',
+        {
+          conversationHistory: [],
+          currentProducts: products.slice(0, 10) // Primeiros 10 produtos para contexto
+        },
+        products.slice(0, 20) // Produtos disponíveis para recomendação
+      );
+
+      res.json({ response, success: true });
+    } catch (error) {
+      console.error("Error testing AI:", error);
+      res.status(500).json({ message: "Failed to test AI", error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
+  app.post('/api/chat/ai-response', isAuthenticated, async (req: any, res) => {
+    try {
+      const { message, conversationId, customerName } = req.body;
+      const { aiBot } = await import('./openai');
+
+      // Buscar configuração do bot
+      const config = await storage.getWhatsAppConfig();
+      const botConfig = config?.bot || {};
+
+      // Atualizar conhecimento se IA estiver habilitada
+      if (botConfig.aiEnabled) {
+        aiBot.updateBusinessKnowledge({
+          companyName: botConfig.companyName || 'AutoPeças Brasil',
+          businessType: 'Distribuidora de autopeças',
+          specialties: botConfig.specialties?.split(',').map((s: string) => s.trim()) || [],
+          commonProducts: ['Filtro de óleo', 'Pastilha de freio', 'Amortecedor'],
+          workingHours: botConfig.workingHours || 'Segunda a Sexta: 8h às 18h',
+          policies: botConfig.policies?.split(',').map((p: string) => p.trim()) || [],
+          promotions: botConfig.promotions?.split(',').map((p: string) => p.trim()) || [],
+        });
+      }
+
+      // Buscar histórico da conversa
+      const messages = await storage.getMessagesByConversation(conversationId);
+      const conversationHistory = messages.map(msg => ({
+        role: msg.senderType === 'customer' ? 'user' as const : 'assistant' as const,
+        content: msg.content,
+        timestamp: msg.createdAt || new Date()
+      }));
+
+      // Buscar produtos disponíveis
+      const products = await storage.getAllProducts();
+
+      // Gerar resposta da IA
+      const aiResponse = await aiBot.generateResponse(
+        message,
+        {
+          customerName,
+          conversationHistory,
+          currentProducts: products.slice(0, 10)
+        },
+        products
+      );
+
+      // Salvar resposta do bot
+      const botMessage = await storage.createMessage({
+        conversationId,
+        content: aiResponse,
+        senderType: 'bot',
+        senderId: 'ai-bot',
+        isRead: false,
+      });
+
+      res.json({ 
+        response: aiResponse, 
+        message: botMessage,
+        success: true 
+      });
+    } catch (error) {
+      console.error("Error generating AI response:", error);
+      res.status(500).json({ message: "Failed to generate AI response" });
+    }
+  });
+
+  app.post('/api/chat/analyze-intent', isAuthenticated, async (req: any, res) => {
+    try {
+      const { message } = req.body;
+      const { aiBot } = await import('./openai');
+
+      const analysis = await aiBot.analyzeIntent(message);
+      res.json(analysis);
+    } catch (error) {
+      console.error("Error analyzing intent:", error);
+      res.status(500).json({ message: "Failed to analyze intent" });
+    }
+  });
+
+  app.post('/api/chat/recommend-products', isAuthenticated, async (req: any, res) => {
+    try {
+      const { vehicleInfo } = req.body;
+      const { aiBot } = await import('./openai');
+
+      const products = await storage.getAllProducts();
+      const recommendations = await aiBot.recommendProducts(vehicleInfo, products);
+      
+      res.json({ recommendations });
+    } catch (error) {
+      console.error("Error recommending products:", error);
+      res.status(500).json({ message: "Failed to recommend products" });
+    }
+  });
+
   // Export reports route
   app.get('/api/reports/export', isAuthenticated, async (req, res) => {
     try {
