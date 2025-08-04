@@ -25,6 +25,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Temporary login for testing
+  app.post('/api/auth/temp-login', async (req, res) => {
+    try {
+      const { email, role, name } = req.body;
+      
+      // Create or get user
+      let user = await storage.getUserByEmail(email);
+      if (!user) {
+        user = await storage.upsertUser({
+          id: `temp_${Date.now()}`,
+          email,
+          firstName: name.split(' ')[0],
+          lastName: name.split(' ').slice(1).join(' '),
+          role,
+          isActive: true,
+          permissions: {},
+          isInvitePending: false
+        });
+      }
+
+      // Create session manually
+      (req as any).session = (req as any).session || {};
+      (req as any).session.user = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        profileImageUrl: user.profileImageUrl,
+        claims: { sub: user.id }
+      };
+
+      res.json({ success: true, user: (req as any).session.user });
+    } catch (error) {
+      console.error('Temp login error:', error);
+      res.status(500).json({ message: 'Erro no login temporário' });
+    }
+  });
+
   // User management routes
   app.get('/api/users', isAuthenticated, async (req, res) => {
     try {
