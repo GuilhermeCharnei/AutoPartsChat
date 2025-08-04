@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { AdminPanel } from "@/components/admin/admin-panel";
+import { LogoutButton } from './logout-button';
 
 export function WhatsAppLayout() {
   const { user } = useAuth();
@@ -35,18 +36,14 @@ export function WhatsAppLayout() {
               <span className="text-xs bg-white/30 px-2 py-0.5 rounded">
                 {(user as any)?.role === 'dev' && 'DEV'}
                 {(user as any)?.role === 'administrador' && 'ADMIN'}
+                {(user as any)?.role === 'gerente' && 'GERENTE'}
                 {(user as any)?.role === 'vendedor' && 'VENDEDOR'}
                 {!(user as any)?.role && 'USUÁRIO'}
               </span>
             </div>
           </div>
 
-          <button 
-            onClick={() => window.location.href = '/api/logout'}
-            className="text-white/80 hover:text-white p-1"
-          >
-            <i className="fas fa-sign-out-alt text-sm"></i>
-          </button>
+          <LogoutButton />
         </div>
       </div>
 

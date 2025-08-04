@@ -23,9 +23,18 @@ import { PermissionsTab } from "./permissions-tab";
 import { OpenAIConfigTab } from "./openai-config-tab";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export function AdminPanel() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'conversations' | 'users' | 'inventory' | 'reports' | 'profile' | 'whatsapp' | 'openai' | 'permissions'>('dashboard');
+  const { canAccess, role } = usePermissions();
+  
+  // Set initial tab based on permissions
+  const getInitialTab = () => {
+    if (role === 'vendedor') return 'profile';
+    return 'dashboard';
+  };
+  
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'conversations' | 'users' | 'inventory' | 'reports' | 'profile' | 'whatsapp' | 'openai' | 'permissions'>(getInitialTab());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const { data: conversations = [] } = useQuery({
@@ -34,62 +43,74 @@ export function AdminPanel() {
 
   const activeConversations = (conversations as any[]).filter((c: any) => c.status === 'active').length;
 
-  const menuItems = [
+  // Filter menu items based on permissions
+  const allMenuItems = [
     {
       id: 'dashboard',
       label: 'Dashboard',
       icon: LayoutDashboard,
-      badge: null
+      badge: null,
+      show: canAccess.canViewDashboard
     },
     {
       id: 'conversations',
       label: 'Conversas Ativas',
       icon: MessageCircle,
-      badge: activeConversations > 0 ? activeConversations : null
+      badge: activeConversations > 0 ? activeConversations : null,
+      show: canAccess.canViewDashboard
     },
     {
       id: 'users',
       label: 'Usuários',
       icon: Users,
-      badge: null
+      badge: null,
+      show: canAccess.showUsersTab
     },
     {
       id: 'inventory',
       label: 'Inventário',
       icon: Package,
-      badge: null
+      badge: null,
+      show: canAccess.showInventoryTab
     },
     {
       id: 'reports',
       label: 'Relatórios',
       icon: BarChart3,
-      badge: null
+      badge: null,
+      show: canAccess.showReportsTab
     },
     {
       id: 'profile',
       label: 'Perfil',
       icon: User,
-      badge: null
+      badge: null,
+      show: true // Everyone can access their profile
     },
     {
       id: 'whatsapp',
       label: 'WhatsApp API',
       icon: Settings,
-      badge: null
+      badge: null,
+      show: canAccess.showApiConfigTab
     },
     {
       id: 'openai',
       label: 'OpenAI API',
       icon: Sparkles,
-      badge: null
+      badge: null,
+      show: canAccess.showApiConfigTab
     },
     {
       id: 'permissions',
       label: 'Permissões',
       icon: Shield,
-      badge: null
+      badge: null,
+      show: canAccess.showUsersTab
     }
   ];
+
+  const menuItems = allMenuItems.filter(item => item.show !== false);
 
   const getPageTitle = () => {
     switch (activeTab) {

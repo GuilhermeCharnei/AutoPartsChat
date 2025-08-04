@@ -33,6 +33,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create or get user
       let user = await storage.getUserByEmail(email);
       if (!user) {
+        // Set permissions based on role
+        let permissions = {};
+        switch (role) {
+          case 'dev':
+            permissions = {
+              viewStock: true,
+              editProducts: true,
+              viewReports: true,
+              manageUsers: true,
+              adminAccess: true,
+              apiConfig: true
+            };
+            break;
+          case 'administrador':
+            permissions = {
+              viewStock: true,
+              editProducts: true,
+              viewReports: true,
+              manageUsers: true,
+              adminAccess: true,
+              apiConfig: false
+            };
+            break;
+          case 'gerente':
+            permissions = {
+              viewStock: true,
+              editProducts: true,
+              viewReports: true,
+              manageUsers: true,
+              adminAccess: false,
+              apiConfig: false,
+              canCreateAdmin: false
+            };
+            break;
+          case 'vendedor':
+            permissions = {
+              viewStock: true,
+              editProducts: false,
+              viewReports: false,
+              manageUsers: false,
+              adminAccess: false,
+              apiConfig: false,
+              editOwnProfile: true
+            };
+            break;
+        }
+
         user = await storage.upsertUser({
           id: `temp_${Date.now()}`,
           email,
@@ -40,7 +87,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastName: name.split(' ').slice(1).join(' '),
           role,
           isActive: true,
-          permissions: {},
+          permissions,
           isInvitePending: false
         });
       }
@@ -61,6 +108,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Temp login error:', error);
       res.status(500).json({ message: 'Erro no login temporário' });
+    }
+  });
+
+  // Logout route
+  app.post('/api/auth/logout', async (req, res) => {
+    try {
+      (req as any).session.destroy((err: any) => {
+        if (err) {
+          console.error('Session destroy error:', err);
+          return res.status(500).json({ message: 'Erro ao fazer logout' });
+        }
+        res.json({ success: true });
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      res.status(500).json({ message: 'Erro no logout' });
     }
   });
 
