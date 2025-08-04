@@ -28,12 +28,17 @@ export function WhatsAppLayout() {
                 <i className="fas fa-user text-xs sm:text-sm"></i>
               )}
             </div>
-            <span className="text-xs sm:text-sm hidden sm:block">
-              {(user as any)?.firstName ? `${(user as any).firstName} ${(user as any).lastName || ''}`.trim() : 'Usuário'}
-            </span>
-            {(user as any)?.role === 'admin' && (
-              <span className="text-xs bg-white/20 px-1 sm:px-2 py-1 rounded hidden sm:inline">Admin</span>
-            )}
+            <div className="hidden sm:block">
+              <span className="text-xs sm:text-sm block">
+                {(user as any)?.firstName ? `${(user as any).firstName} ${(user as any).lastName || ''}`.trim() : 'Usuário'}
+              </span>
+              <span className="text-xs bg-white/30 px-2 py-0.5 rounded">
+                {(user as any)?.role === 'dev' && 'DEV'}
+                {(user as any)?.role === 'administrador' && 'ADMIN'}
+                {(user as any)?.role === 'vendedor' && 'VENDEDOR'}
+                {!(user as any)?.role && 'USUÁRIO'}
+              </span>
+            </div>
           </div>
 
           <button 

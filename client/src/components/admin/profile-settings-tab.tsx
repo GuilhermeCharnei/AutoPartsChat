@@ -50,7 +50,7 @@ export function ProfileSettingsTab() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest('/api/admin/profile', 'PUT', data);
+      return await apiRequest('PUT', '/api/admin/profile', data);
     },
     onSuccess: () => {
       toast({

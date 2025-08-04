@@ -64,7 +64,7 @@ export function UsersTab() {
   // Mutation para deletar usuário
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return await apiRequest(`/api/users/${userId}`, 'DELETE');
+      return await apiRequest('DELETE', `/api/users/${userId}`);
     },
     onSuccess: () => {
       toast({
@@ -84,8 +84,8 @@ export function UsersTab() {
 
   // Mutation para promover usuário
   const promoteUserMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      return await apiRequest(`/api/admin/users/${userId}/promote`, 'POST');
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      return await apiRequest('PATCH', `/api/users/${userId}/promote`, { role });
     },
     onSuccess: () => {
       toast({
@@ -111,7 +111,7 @@ export function UsersTab() {
 
   const handlePromoteUser = (userId: string) => {
     if (confirm('Tem certeza que deseja promover este usuário a administrador?')) {
-      promoteUserMutation.mutate(userId);
+      promoteUserMutation.mutate({ userId, role: 'administrador' });
     }
   };
 

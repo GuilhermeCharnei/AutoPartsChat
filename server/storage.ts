@@ -71,6 +71,7 @@ export interface IStorage {
   updateUserRole(userId: string, role: string): Promise<User>;
   updateUserPermissions(userId: string, permissions: Record<string, boolean>): Promise<User>;
   deleteUser(userId: string): Promise<boolean>;
+  updateUser(id: string, data: any): Promise<User>;
   
   // OpenAI Config operations
   getOpenAIConfig(): Promise<any>;
@@ -197,14 +198,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(userId: string): Promise<boolean> {
-    const result = await db
-      .update(users)
-      .set({ 
-        isActive: false,
-        updatedAt: new Date() 
-      })
-      .where(eq(users.id, userId));
-    return (result.rowCount || 0) > 0;
+    try {
+      const result = await db
+        .delete(users)
+        .where(eq(users.id, userId));
+      return true;
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      return false;
+    }
   }
 
   // OpenAI Config operations - mock for now

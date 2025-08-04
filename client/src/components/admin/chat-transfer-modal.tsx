@@ -67,7 +67,7 @@ export function ChatTransferModal({ isOpen, onClose, conversationId, currentAssi
   };
 
   const availableSellers = users.filter(user => 
-    user.role === 'seller' && user.isActive && user.id !== currentAssignee
+    (user.role === 'vendedor' || user.role === 'seller') && user.isActive && user.id !== currentAssignee
   );
 
   if (!isOpen) return null;

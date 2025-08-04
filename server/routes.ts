@@ -212,7 +212,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete user route
+  app.delete('/api/users/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteUser(id);
+      res.json({ message: "Usuário removido com sucesso" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Erro ao remover usuário" });
+    }
+  });
 
+  // Promote user route
+  app.patch('/api/users/:id/promote', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { role } = req.body;
+      const user = await storage.updateUser(id, { role });
+      res.json(user);
+    } catch (error) {
+      console.error("Error promoting user:", error);
+      res.status(500).json({ message: "Erro ao promover usuário" });
+    }
+  });
+
+  // Update user permissions route
+  app.patch('/api/users/:id/permissions', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { permissions } = req.body;
+      const user = await storage.updateUser(id, { permissions });
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating permissions:", error);
+      res.status(500).json({ message: "Erro ao atualizar permissões" });
+    }
+  });
 
   // Chat transfer route
   app.patch('/api/conversations/:id/assign', isAuthenticated, async (req, res) => {
@@ -526,19 +562,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       switch (type) {
         case 'sales':
-          data = await storage.getAllOrders();
+          const orders = await storage.getAllOrders();
+          data = orders.map(order => ({
+            'ID': order.id,
+            'Cliente': order.customerName || '',
+            'Produto': order.productName || '',
+            'Quantidade': order.quantity || 0,
+            'Valor Total (R$)': order.totalAmount || 0,
+            'Status': order.status || '',
+            'Data da Venda': order.createdAt ? new Date(order.createdAt).toLocaleDateString('pt-BR') : ''
+          }));
           break;
         case 'products':
-          data = await storage.getAllProducts();
+          const products = await storage.getAllProducts();
+          data = products.map(product => ({
+            'Nome': product.name,
+            'Descrição': product.description || '',
+            'Categoria': product.category || '',
+            'Preço (R$)': product.price,
+            'Estoque': product.stock,
+            'Marca': product.brand || '',
+            'Modelo do Veículo': product.vehicleModel || '',
+            'Ano do Veículo': product.vehicleYear || '',
+            'Status': product.isActive ? 'Ativo' : 'Inativo',
+            'Data de Criação': product.createdAt ? new Date(product.createdAt).toLocaleDateString('pt-BR') : ''
+          }));
           break;
         case 'conversations':
-          data = await storage.getAllConversations();
+          const conversations = await storage.getAllConversations();
+          data = conversations.map(conv => ({
+            'ID': conv.id,
+            'Cliente': conv.customerName,
+            'Telefone': conv.customerPhone || '',
+            'Status': conv.status,
+            'Vendedor Responsável': conv.assignedUserId || '',
+            'Última Mensagem': conv.lastMessageAt ? new Date(conv.lastMessageAt).toLocaleDateString('pt-BR') : '',
+            'Data de Criação': conv.createdAt ? new Date(conv.createdAt).toLocaleDateString('pt-BR') : ''
+          }));
           break;
         case 'users':
-          data = await storage.getAllUsers();
+          const users = await storage.getAllUsers();
+          data = users.map(user => ({
+            'Nome': user.firstName || '',
+            'Sobrenome': user.lastName || '',
+            'Email': user.email || '',
+            'Telefone': user.phone || '',
+            'Função': user.role || '',
+            'Empresa': user.companyName || '',
+            'Status': user.isActive ? 'Ativo' : 'Inativo',
+            'Data de Criação': user.createdAt ? new Date(user.createdAt).toLocaleDateString('pt-BR') : ''
+          }));
           break;
         case 'inventory':
-          data = await storage.getAllProducts();
+          const inventory = await storage.getAllProducts();
+          data = inventory.map(product => ({
+            'Nome do Produto': product.name,
+            'Categoria': product.category || '',
+            'Marca': product.brand || '',
+            'Estoque Atual': product.stock,
+            'Preço (R$)': product.price,
+            'Status do Estoque': product.stock < 5 ? 'Baixo' : product.stock < 20 ? 'Médio' : 'Alto',
+            'Última Atualização': product.updatedAt ? new Date(product.updatedAt).toLocaleDateString('pt-BR') : ''
+          }));
           break;
         default:
           return res.status(400).json({ message: "Invalid report type" });
@@ -547,7 +632,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create Excel buffer
       const worksheet = XLSX.utils.json_to_sheet(data);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Relatório');
       const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);

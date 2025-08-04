@@ -90,8 +90,10 @@ export function AddProductModal({ isOpen, onClose }: AddProductModalProps) {
               id="name"
               value={formData.name}
               onChange={(e) => handleChange('name', e.target.value)}
+              placeholder="Ex: Filtro de Óleo Bosch P7089"
               required
             />
+            <p className="text-xs text-gray-500 mt-1">Digite o nome completo da peça incluindo marca e código</p>
           </div>
 
           <div>
@@ -100,8 +102,10 @@ export function AddProductModal({ isOpen, onClose }: AddProductModalProps) {
               id="description"
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
+              placeholder="Ex: Filtro de óleo para motor com rosca M20 x 1.5, altura 85mm"
               rows={3}
             />
+            <p className="text-xs text-gray-500 mt-1">Descrição técnica detalhada da peça</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -111,7 +115,9 @@ export function AddProductModal({ isOpen, onClose }: AddProductModalProps) {
                 id="category"
                 value={formData.category}
                 onChange={(e) => handleChange('category', e.target.value)}
+                placeholder="Ex: Filtros, Freios, Motor"
               />
+              <p className="text-xs text-gray-500 mt-1">Categoria da peça</p>
             </div>
             <div>
               <Label htmlFor="brand">Marca</Label>
@@ -119,7 +125,9 @@ export function AddProductModal({ isOpen, onClose }: AddProductModalProps) {
                 id="brand"
                 value={formData.brand}
                 onChange={(e) => handleChange('brand', e.target.value)}
+                placeholder="Ex: Bosch, Continental, Brembo"
               />
+              <p className="text-xs text-gray-500 mt-1">Fabricante da peça</p>
             </div>
           </div>
 
@@ -132,8 +140,10 @@ export function AddProductModal({ isOpen, onClose }: AddProductModalProps) {
                 step="0.01"
                 value={formData.price}
                 onChange={(e) => handleChange('price', e.target.value)}
+                placeholder="Ex: 45.90"
                 required
               />
+              <p className="text-xs text-gray-500 mt-1">Preço de venda em reais</p>
             </div>
             <div>
               <Label htmlFor="stock">Estoque *</Label>
@@ -142,8 +152,10 @@ export function AddProductModal({ isOpen, onClose }: AddProductModalProps) {
                 type="number"
                 value={formData.stock}
                 onChange={(e) => handleChange('stock', e.target.value)}
+                placeholder="Ex: 25"
                 required
               />
+              <p className="text-xs text-gray-500 mt-1">Quantidade em estoque</p>
             </div>
           </div>
 
@@ -154,7 +166,9 @@ export function AddProductModal({ isOpen, onClose }: AddProductModalProps) {
                 id="vehicleModel"
                 value={formData.vehicleModel}
                 onChange={(e) => handleChange('vehicleModel', e.target.value)}
+                placeholder="Ex: Gol, Civic, Corolla"
               />
+              <p className="text-xs text-gray-500 mt-1">Modelos compatíveis</p>
             </div>
             <div>
               <Label htmlFor="vehicleYear">Ano do Veículo</Label>
@@ -162,7 +176,9 @@ export function AddProductModal({ isOpen, onClose }: AddProductModalProps) {
                 id="vehicleYear"
                 value={formData.vehicleYear}
                 onChange={(e) => handleChange('vehicleYear', e.target.value)}
+                placeholder="Ex: 2015-2020"
               />
+              <p className="text-xs text-gray-500 mt-1">Anos de fabricação compatíveis</p>
             </div>
           </div>
 

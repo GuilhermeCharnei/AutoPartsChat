@@ -39,8 +39,8 @@ export function InventoryTab() {
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
       toast({
-        title: "Upload concluído",
-        description: `${data.created} produtos adicionados, ${data.errors} erros`,
+        title: "Upload concluído com sucesso!",
+        description: `${data.imported || 0} produtos importados, ${data.updated || 0} atualizados, ${data.duplicates || 0} duplicados encontrados`,
       });
     },
     onError: () => {
