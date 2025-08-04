@@ -84,13 +84,15 @@ export default function TempLogin() {
       <Card className="w-full max-w-md bg-slate-800/50 border-slate-600 backdrop-blur-sm">
         <CardHeader className="text-center pb-6">
           <div className="mx-auto mb-4 w-16 h-16 bg-slate-600 rounded-xl flex items-center justify-center">
-            <Building className="w-8 h-8 text-blue-400" />
+            <svg className="w-8 h-8 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C13.1 2 14 2.9 14 4V6H18C19.1 6 20 6.9 20 8V20C20 21.1 19.1 22 18 22H6C4.9 22 4 21.1 4 20V8C4 6.9 4.9 6 6 6H10V4C10 2.9 10.9 2 12 2M12 4V6H12V4M6 8V20H18V8H6M8 10H16V12H8V10M8 14H13V16H8V14Z"/>
+            </svg>
           </div>
           <CardTitle className="text-2xl font-bold text-white">
-            Fresh Water manage
+            AutoPeças Brasil
           </CardTitle>
           <CardDescription className="text-slate-300">
-            Sistema de Gestão de Orçamentos
+            Sistema de Vendas WhatsApp
           </CardDescription>
         </CardHeader>
 
@@ -106,7 +108,7 @@ export default function TempLogin() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400"
-                  placeholder="admin@freshwatermanage.com"
+                  placeholder="admin@autopecas.com"
                   required
                 />
               </div>
@@ -139,7 +141,7 @@ export default function TempLogin() {
 
           <div className="mt-6 p-4 bg-slate-700/30 rounded-lg border border-slate-600">
             <h3 className="text-sm font-medium text-slate-200 mb-3">
-              Credenciais de demonstração:
+              Usuários de teste:
             </h3>
             <div className="space-y-2 text-xs text-slate-300">
               <div className="space-y-1">

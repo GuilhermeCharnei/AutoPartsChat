@@ -40,7 +40,7 @@ export const users = pgTable("users", {
   companyName: varchar("company_name"),
   companyAddress: varchar("company_address"),
   companyDescription: varchar("company_description"),
-  systemName: varchar("system_name").default("Sistema de Vendas WhatsApp - Autopeças Brasil"),
+  systemName: varchar("system_name").default("Sistema de Vendas WhatsApp - AutoPeças Brasil"),
   passwordHash: varchar("password_hash"), // For non-OAuth users
   inviteToken: varchar("invite_token"), // For user invitations
   inviteExpiresAt: timestamp("invite_expires_at"),
