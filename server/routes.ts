@@ -348,6 +348,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Edit user route
+  app.patch('/api/users/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userData = req.body;
+      const user = await storage.updateUser(id, userData);
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Delete user route
+  app.delete('/api/users/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteUser(id);
+      res.json({ success });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  // Update user role route
+  app.patch('/api/users/:id/role', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { role } = req.body;
+      const user = await storage.updateUserRole(id, role);
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      res.status(500).json({ message: "Failed to update user role" });
+    }
+  });
+
   // AI Bot Routes
   app.post('/api/admin/test-ai', isAuthenticated, async (req: any, res) => {
     try {

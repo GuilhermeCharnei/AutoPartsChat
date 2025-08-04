@@ -70,6 +70,7 @@ export interface IStorage {
   hasPermission(user: User, permission: string): boolean;
   updateUserRole(userId: string, role: string): Promise<User>;
   updateUserPermissions(userId: string, permissions: Record<string, boolean>): Promise<User>;
+  deleteUser(userId: string): Promise<boolean>;
   
   // OpenAI Config operations
   getOpenAIConfig(): Promise<any>;
@@ -193,6 +194,17 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return user;
+  }
+
+  async deleteUser(userId: string): Promise<boolean> {
+    const result = await db
+      .update(users)
+      .set({ 
+        isActive: false,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, userId));
+    return (result.rowCount || 0) > 0;
   }
 
   // OpenAI Config operations - mock for now
