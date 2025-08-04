@@ -8,11 +8,13 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { User } from "@shared/schema";
 import { AddUserModal } from "./add-user-modal";
+import { EditUserModal } from "./edit-user-modal";
 import { Search, User as UserIcon, UserPlus, Edit, Trash2 } from "lucide-react";
 
 export function UsersTab() {
   const { toast } = useToast();
   const [showAddUser, setShowAddUser] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data: users = [], isLoading } = useQuery<User[]>({
@@ -76,6 +78,64 @@ export function UsersTab() {
       };
       updatePermissionsMutation.mutate({ userId, permissions: newPermissions });
     }
+  };
+
+  // Mutation para deletar usuário
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return await apiRequest(`/api/users/${userId}`, 'DELETE');
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sucesso!",
+        description: "Usuário removido com sucesso.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Falha ao remover usuário.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation para promover usuário
+  const promoteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return await apiRequest(`/api/admin/users/${userId}/promote`, 'POST');
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sucesso!",
+        description: "Usuário promovido a administrador.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Falha ao promover usuário.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteUser = (userId: string) => {
+    if (confirm('Tem certeza que deseja remover este usuário?')) {
+      deleteUserMutation.mutate(userId);
+    }
+  };
+
+  const handlePromoteUser = (userId: string) => {
+    if (confirm('Tem certeza que deseja promover este usuário a administrador?')) {
+      promoteUserMutation.mutate(userId);
+    }
+  };
+
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
   };
 
   if (isLoading) {
@@ -169,8 +229,14 @@ export function UsersTab() {
                   {user.email}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                    Admin
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    user.role === 'dev' ? 'bg-purple-100 text-purple-800' :
+                    user.role === 'admin' ? 'bg-blue-100 text-blue-800' :
+                    'bg-green-100 text-green-800'
+                  }`}>
+                    {user.role === 'dev' ? 'DEV' : 
+                     user.role === 'admin' ? 'Admin' : 
+                     'Vendedor'}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -179,6 +245,7 @@ export function UsersTab() {
                       size="sm"
                       variant="outline"
                       className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                      onClick={() => handleEditUser(user)}
                     >
                       <Edit className="w-3 h-3 mr-1" />
                       Editar
@@ -187,17 +254,23 @@ export function UsersTab() {
                       size="sm"
                       variant="outline"
                       className="text-red-600 border-red-300 hover:bg-red-50"
+                      onClick={() => handleDeleteUser(user.id)}
+                      disabled={deleteUserMutation.isPending}
                     >
                       <Trash2 className="w-3 h-3 mr-1" />
                       Remover
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-green-600 border-green-300 hover:bg-green-50"
-                    >
-                      Promover
-                    </Button>
+                    {user.role !== 'admin' && user.role !== 'dev' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-green-600 border-green-300 hover:bg-green-50"
+                        onClick={() => handlePromoteUser(user.id)}
+                        disabled={promoteUserMutation.isPending}
+                      >
+                        Promover
+                      </Button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -210,6 +283,14 @@ export function UsersTab() {
         isOpen={showAddUser} 
         onClose={() => setShowAddUser(false)} 
       />
+      
+      {editingUser && (
+        <EditUserModal 
+          user={editingUser}
+          isOpen={!!editingUser} 
+          onClose={() => setEditingUser(null)} 
+        />
+      )}
     </div>
   );
 }
