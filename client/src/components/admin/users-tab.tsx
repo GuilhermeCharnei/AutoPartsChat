@@ -21,26 +21,7 @@ export function UsersTab() {
     queryKey: ['/api/users'],
   });
 
-  const promoteToDev = useMutation({
-    mutationFn: async () => {
-      return await apiRequest('/api/users/promote-to-dev', 'PATCH');
-    },
-    onSuccess: () => {
-      toast({
-        title: "Sucesso!",
-        description: "Você foi promovido a DEV com todas as permissões.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-    },
-    onError: () => {
-      toast({
-        title: "Erro",
-        description: "Falha ao promover usuário.",
-        variant: "destructive",
-      });
-    },
-  });
+
 
   // Filtrar usuários baseado na busca
   const filteredUsers = users.filter(user =>
@@ -164,14 +145,6 @@ export function UsersTab() {
             />
           </div>
           <div className="flex space-x-2 ml-4">
-            <Button 
-              onClick={() => promoteToDev.mutate()}
-              variant="outline"
-              className="text-purple-600 border-purple-300 hover:bg-purple-50"
-              disabled={promoteToDev.isPending}
-            >
-              {promoteToDev.isPending ? 'Promovendo...' : 'Tornar-me DEV'}
-            </Button>
             <Button 
               onClick={() => setShowAddUser(true)}
               className="bg-green-600 hover:bg-green-700 text-white"

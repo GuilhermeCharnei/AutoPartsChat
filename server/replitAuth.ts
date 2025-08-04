@@ -64,6 +64,37 @@ async function upsertUser(
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
   });
+  
+  // Auto-promote specific user to DEV role
+  await autoPromoteDevUser(claims["sub"]);
+}
+
+// Auto-promote specific user to DEV role on login (internal use only)
+async function autoPromoteDevUser(userId: string) {
+  const DEV_USER_ID = "45583450"; // Guilherme's user ID
+  
+  if (userId === DEV_USER_ID) {
+    try {
+      const existingUser = await storage.getUser(userId);
+      if (existingUser && existingUser.role !== 'dev') {
+        await storage.updateUser(userId, {
+          role: 'dev',
+          permissions: {
+            viewStock: true,
+            editProducts: true,
+            viewReports: true,
+            manageUsers: true,
+            accessWhatsappAPI: true,
+            accessOpenAI: true,
+            systemSettings: true
+          }
+        });
+        console.log("Auto-promoted user to DEV:", userId);
+      }
+    } catch (error) {
+      console.error("Error auto-promoting DEV user:", error);
+    }
+  }
 }
 
 export async function setupAuth(app: Express) {

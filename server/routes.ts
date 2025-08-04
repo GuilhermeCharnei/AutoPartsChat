@@ -191,45 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update my user to DEV role
-  app.patch('/api/users/promote-to-dev', isAuthenticated, async (req: any, res) => {
-    try {
-      const currentUserId = req.user?.claims?.sub;
-      console.log("Promoting user to DEV - User ID:", currentUserId);
-      console.log("Request user object:", req.user);
-      
-      if (!currentUserId) {
-        return res.status(400).json({ message: "User ID not found" });
-      }
-      
-      // Check if user exists
-      const existingUser = await storage.getUser(currentUserId);
-      console.log("Existing user found:", existingUser);
-      
-      if (!existingUser) {
-        return res.status(404).json({ message: "User not found in database" });
-      }
-      
-      const user = await storage.updateUser(currentUserId, {
-        role: 'dev',
-        permissions: {
-          viewStock: true,
-          editProducts: true,
-          viewReports: true,
-          manageUsers: true,
-          accessWhatsappAPI: true,
-          accessOpenAI: true,
-          systemSettings: true
-        }
-      });
-      
-      console.log("User updated successfully:", user);
-      res.json(user);
-    } catch (error) {
-      console.error("Error promoting user:", error);
-      res.status(500).json({ message: "Failed to promote user" });
-    }
-  });
+
 
   // Chat transfer route
   app.patch('/api/conversations/:id/assign', isAuthenticated, async (req, res) => {
