@@ -49,19 +49,41 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Products/Inventory table
+// Products/Inventory table - Enhanced based on Excel data structure
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
+  codigo: varchar("codigo", { length: 50 }), // Product code/SKU  
+  descricao: text("descricao"), // Product description
+  marca: varchar("marca", { length: 100 }), // Brand
+  categoria: varchar("categoria", { length: 100 }), // Category
+  subcategoria: varchar("subcategoria", { length: 100 }), // Subcategory
+  aplicacao: text("aplicacao"), // Vehicle application
+  preco_custo: decimal("preco_custo", { precision: 10, scale: 2 }), // Cost price
+  preco_venda: decimal("preco_venda", { precision: 10, scale: 2 }), // Sale price
+  margem_lucro: decimal("margem_lucro", { precision: 5, scale: 2 }), // Profit margin %
+  estoque_atual: integer("estoque_atual").default(0), // Current stock
+  estoque_minimo: integer("estoque_minimo").default(5), // Minimum stock
+  localizacao: varchar("localizacao", { length: 50 }), // Storage location
+  fornecedor: varchar("fornecedor", { length: 100 }), // Supplier
+  peso: decimal("peso", { precision: 8, scale: 3 }), // Weight in kg
+  dimensoes: varchar("dimensoes", { length: 100 }), // Dimensions
+  ncm: varchar("ncm", { length: 20 }), // NCM code for taxation
+  observacoes: text("observacoes"), // Additional notes
+  ativo: boolean("ativo").default(true), // Active status
+  data_cadastro: timestamp("data_cadastro").defaultNow(),
+  data_atualizacao: timestamp("data_atualizacao").defaultNow(),
+  
+  // Legacy fields for compatibility
+  name: varchar("name", { length: 255 }),
   description: text("description"),
   category: varchar("category", { length: 100 }),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  stock: integer("stock").notNull().default(0),
-  sku: varchar("sku", { length: 100 }).unique(),
+  price: decimal("price", { precision: 10, scale: 2 }),
+  stock: integer("stock").default(0),
+  sku: varchar("sku", { length: 100 }),
   brand: varchar("brand", { length: 100 }),
   vehicleModel: varchar("vehicle_model", { length: 100 }),
   vehicleYear: varchar("vehicle_year", { length: 20 }),
-  isActive: boolean("is_active").notNull().default(true),
+  isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

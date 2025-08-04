@@ -108,31 +108,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const data = XLSX.utils.sheet_to_json(worksheet);
+      
+      // Skip header rows and get data starting from row 3 (index 2)
+      const data = XLSX.utils.sheet_to_json(worksheet, { 
+        range: 2, // Start from row 3 (0-indexed)
+        header: ['codigo', 'descricao', 'marca', 'estoque', 'fabricante', 'preco_unitario']
+      });
 
       let imported = 0;
       let updated = 0;
       let duplicates = 0;
       const existingProducts = await storage.getAllProducts();
-      const productMap = new Map(existingProducts.map(p => [p.name.toLowerCase(), p]));
+      const productMap = new Map(existingProducts.map(p => [
+        (p.descricao || p.name || '').toLowerCase(), p
+      ]));
 
       for (const row of data) {
         try {
           const rowData = row as any;
+          
+          // Skip empty rows
+          if (!rowData.codigo && !rowData.descricao) continue;
+          
           const product = {
-            name: String(rowData['Nome'] || rowData['name'] || '').trim(),
-            description: String(rowData['Descrição'] || rowData['description'] || '').trim(),
-            category: String(rowData['Categoria'] || rowData['category'] || '').trim(),
-            price: String(parseFloat(String(rowData['Preço'] || rowData['price'] || '0'))),
-            stock: parseInt(String(rowData['Estoque'] || rowData['stock'] || '0')),
-            brand: String(rowData['Marca'] || rowData['brand'] || '').trim(),
-            vehicleModel: String(rowData['Modelo'] || rowData['vehicleModel'] || '').trim(),
-            vehicleYear: String(rowData['Ano'] || rowData['vehicleYear'] || '').trim(),
+            // New schema fields
+            codigo: String(rowData.codigo || '').trim(),
+            descricao: String(rowData.descricao || '').trim(),
+            marca: String(rowData.marca || '').trim(),
+            estoque_atual: parseInt(String(rowData.estoque || '0')) || 0,
+            fornecedor: String(rowData.fabricante || '').trim(),
+            preco_venda: String(parseFloat(String(rowData.preco_unitario || '0')) || 0),
+            ativo: true,
+            
+            // Legacy compatibility
+            name: String(rowData.descricao || '').trim(),
+            description: String(rowData.descricao || '').trim(),
+            brand: String(rowData.marca || '').trim(),
+            stock: parseInt(String(rowData.estoque || '0')) || 0,
+            price: String(parseFloat(String(rowData.preco_unitario || '0')) || 0),
+            sku: String(rowData.codigo || '').trim(),
+            isActive: true
           };
 
-          if (!product.name || !product.price) continue;
+          if (!product.descricao || product.preco_venda <= 0) continue;
 
-          const existingProduct = productMap.get(product.name.toLowerCase());
+          const existingProduct = productMap.get(product.descricao.toLowerCase());
           
           if (existingProduct) {
             if (removeDuplicates) {
@@ -145,7 +165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } else {
             await storage.createProduct(product);
             imported++;
-            productMap.set(product.name.toLowerCase(), product as any);
+            productMap.set(product.descricao.toLowerCase(), product as any);
           }
         } catch (error) {
           console.error("Error processing row:", error);
@@ -566,8 +586,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           data = orders.map(order => ({
             'ID': order.id,
             'Cliente': order.customerName || '',
-            'Produto': order.productName || '',
-            'Quantidade': order.quantity || 0,
+            'Produtos': Array.isArray(order.items) ? order.items.map((item: any) => item.name).join(', ') : 'N/A',
+            'Quantidade Total': Array.isArray(order.items) ? order.items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0) : 0,
             'Valor Total (R$)': order.totalAmount || 0,
             'Status': order.status || '',
             'Data da Venda': order.createdAt ? new Date(order.createdAt).toLocaleDateString('pt-BR') : ''
@@ -576,16 +596,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         case 'products':
           const products = await storage.getAllProducts();
           data = products.map(product => ({
-            'Nome': product.name,
-            'Descrição': product.description || '',
-            'Categoria': product.category || '',
-            'Preço (R$)': product.price,
-            'Estoque': product.stock,
-            'Marca': product.brand || '',
-            'Modelo do Veículo': product.vehicleModel || '',
-            'Ano do Veículo': product.vehicleYear || '',
-            'Status': product.isActive ? 'Ativo' : 'Inativo',
-            'Data de Criação': product.createdAt ? new Date(product.createdAt).toLocaleDateString('pt-BR') : ''
+            'Código': product.codigo || product.sku || '',
+            'Descrição': product.descricao || product.description || product.name || '',
+            'Marca': product.marca || product.brand || '',
+            'Categoria': product.categoria || product.category || '',
+            'Subcategoria': product.subcategoria || '',
+            'Aplicação': product.aplicacao || `${product.vehicleModel || ''} ${product.vehicleYear || ''}`.trim(),
+            'Preço de Custo (R$)': product.preco_custo || '',
+            'Preço de Venda (R$)': product.preco_venda || product.price || '',
+            'Margem de Lucro (%)': product.margem_lucro || '',
+            'Estoque Atual': product.estoque_atual || product.stock || 0,
+            'Status do Estoque': (product.estoque_atual || product.stock || 0) < 5 ? 'Baixo' : (product.estoque_atual || product.stock || 0) < 20 ? 'Médio' : 'Alto',
+            'Estoque Mínimo': product.estoque_minimo || '',
+            'Localização': product.localizacao || '',
+            'Fornecedor': product.fornecedor || '',
+            'Peso (kg)': product.peso || '',
+            'Dimensões': product.dimensoes || '',
+            'NCM': product.ncm || '',
+            'Observações': product.observacoes || '',
+            'Status': (product.ativo !== false && product.isActive !== false) ? 'Ativo' : 'Inativo',
+            'Data de Cadastro': product.data_cadastro ? new Date(product.data_cadastro).toLocaleDateString('pt-BR') : 
+                               (product.createdAt ? new Date(product.createdAt).toLocaleDateString('pt-BR') : '')
           }));
           break;
         case 'conversations':
