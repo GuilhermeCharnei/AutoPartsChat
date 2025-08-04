@@ -159,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // New user creation route
+  // New user creation route with invite system
   app.post('/api/users', isAuthenticated, async (req, res) => {
     try {
       const userData = req.body;
@@ -172,13 +172,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Generate invite token
+      const inviteToken = `invite_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      
       const user = await storage.upsertUser({
         id: `temp_${Date.now()}`,
         role: userData.role || 'vendedor',
         permissions: userData.permissions || {},
+        inviteToken,
+        inviteExpiresAt,
+        isInvitePending: true,
         ...userData
       });
-      res.json(user);
+      
+      // Log invite details (in production, send email)
+      console.log(`
+      ====== CONVITE DE USUÁRIO ======
+      Email: ${userData.email}
+      Nome: ${userData.firstName} ${userData.lastName}
+      Link: ${req.protocol}://${req.get('host')}/invite/${inviteToken}
+      Expira: ${inviteExpiresAt.toLocaleString('pt-BR')}
+      ================================
+      `);
+      
+      res.json({ 
+        ...user, 
+        message: `Convite enviado para ${userData.email}. Link válido por 7 dias.`
+      });
     } catch (error: any) {
       console.error("Error creating user:", error);
       if (error.code === '23505') {

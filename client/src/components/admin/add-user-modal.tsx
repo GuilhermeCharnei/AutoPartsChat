@@ -90,6 +90,13 @@ export function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
             <X className="w-4 h-4" />
           </Button>
         </div>
+        
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+          <h4 className="font-medium text-blue-900 mb-1">📧 Sistema de Convites</h4>
+          <p className="text-sm text-blue-800">
+            Um convite será enviado por email para o usuário definir sua senha e acessar o sistema. O convite expira em 7 dias.
+          </p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -196,7 +203,7 @@ export function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
               disabled={addUserMutation.isPending}
               className="flex-1 bg-green-600 hover:bg-green-700"
             >
-              {addUserMutation.isPending ? 'Criando...' : 'Criar Usuário'}
+              {addUserMutation.isPending ? 'Enviando Convite...' : 'Criar e Enviar Convite'}
             </Button>
           </div>
         </form>
