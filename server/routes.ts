@@ -252,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             isActive: true
           };
 
-          if (!product.descricao || product.preco_venda <= 0) continue;
+          if (!product.descricao || parseFloat(String(product.preco_venda)) <= 0) continue;
 
           const existingProduct = productMap.get(product.descricao.toLowerCase());
           
@@ -754,7 +754,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             'Marca': product.brand || '',
             'Estoque Atual': product.stock,
             'Preço (R$)': product.price,
-            'Status do Estoque': product.stock < 5 ? 'Baixo' : product.stock < 20 ? 'Médio' : 'Alto',
+            'Status do Estoque': (product.stock || 0) < 5 ? 'Baixo' : (product.stock || 0) < 20 ? 'Médio' : 'Alto',
             'Última Atualização': product.updatedAt ? new Date(product.updatedAt).toLocaleDateString('pt-BR') : ''
           }));
           break;
