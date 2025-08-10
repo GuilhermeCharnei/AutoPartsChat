@@ -159,7 +159,7 @@ export function WhatsAppSetupTab() {
   }
 
   return (
-    <div className="h-full overflow-y-auto p-6 bg-gray-50">
+    <div className="space-y-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">

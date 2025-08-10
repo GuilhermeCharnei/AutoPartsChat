@@ -207,16 +207,18 @@ export function AdminPanel() {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 min-h-0">
-          {activeTab === 'dashboard' && <DashboardTab />}
-          {activeTab === 'conversations' && <ActiveConversationsTab />}
-          {activeTab === 'users' && <UsersTab />}
-          {activeTab === 'inventory' && <InventoryTab />}
-          {activeTab === 'reports' && <ReportsTab />}
-          {activeTab === 'profile' && <ProfileSettingsTab />}
-          {activeTab === 'whatsapp' && <WhatsAppSetupTab />}
-          {activeTab === 'openai' && <OpenAIConfigTab />}
-          {activeTab === 'permissions' && <PermissionsTab />}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="p-6">
+            {activeTab === 'dashboard' && <DashboardTab />}
+            {activeTab === 'conversations' && <ActiveConversationsTab />}
+            {activeTab === 'users' && <UsersTab />}
+            {activeTab === 'inventory' && <InventoryTab />}
+            {activeTab === 'reports' && <ReportsTab />}
+            {activeTab === 'profile' && <ProfileSettingsTab />}
+            {activeTab === 'whatsapp' && <WhatsAppSetupTab />}
+            {activeTab === 'openai' && <OpenAIConfigTab />}
+            {activeTab === 'permissions' && <PermissionsTab />}
+          </div>
         </div>
       </div>
     </div>

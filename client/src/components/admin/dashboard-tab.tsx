@@ -84,8 +84,7 @@ export function DashboardTab() {
   ];
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="p-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="mb-6">
           <h3 className="text-lg font-medium text-gray-900 mb-2">Dashboard</h3>
@@ -207,7 +206,6 @@ export function DashboardTab() {
             </button>
           </div>
         </div>
-      </div>
       </div>
     </div>
   );

@@ -133,7 +133,7 @@ export function ActiveConversationsTab() {
   );
 
   return (
-    <div className="h-full">
+    <div className="h-[calc(100vh-200px)]">
       <ResizableDivider
         leftPanel={conversationsList}
         rightPanel={chatArea}

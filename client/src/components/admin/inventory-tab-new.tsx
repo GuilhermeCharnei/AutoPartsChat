@@ -84,7 +84,7 @@ export function InventoryTab() {
   };
 
   const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.brand?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -98,7 +98,7 @@ export function InventoryTab() {
   }
 
   return (
-    <div className="p-6">
+    <div className="space-y-6">
       <div className="mb-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Gerenciar Estoque</h3>
         
@@ -194,13 +194,13 @@ export function InventoryTab() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    product.stock < 10 
+                    (product.stock || 0) < 10 
                       ? 'bg-red-100 text-red-800' 
-                      : product.stock < 20 
+                      : (product.stock || 0) < 20 
                         ? 'bg-yellow-100 text-yellow-800'
                         : 'bg-green-100 text-green-800'
                   }`}>
-                    {product.stock} unidades
+                    {product.stock || 0} unidades
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

@@ -24,11 +24,11 @@ export function ReportsTab() {
     queryKey: ['/api/conversations'],
   });
 
-  const lowStockProducts = products.filter(p => p.stock < 10);
+  const lowStockProducts = products.filter(p => (p.stock || 0) < 10);
   const activeConversations = conversations.filter(c => c.status === 'active');
 
   return (
-    <div className="p-6">
+    <div className="space-y-6">
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-medium text-gray-900">Relatórios e Análises</h3>
         <Button 

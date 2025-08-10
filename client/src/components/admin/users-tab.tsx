@@ -128,7 +128,7 @@ export function UsersTab() {
   }
 
   return (
-    <div className="p-6">
+    <div className="space-y-6">
       <div className="mb-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Lista de Usuários</h3>
         
