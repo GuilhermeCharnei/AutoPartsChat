@@ -10,7 +10,7 @@ import { User } from "@shared/schema";
 import { AddUserModal } from "./add-user-modal";
 import { EditUserModal } from "./edit-user-modal";
 import { PromoteUserModal } from "./promote-user-modal";
-import { Search, User as UserIcon, UserPlus, Edit, Trash2 } from "lucide-react";
+import { Search, User as UserIcon, UserPlus, Edit, Trash2, Link, Copy, Clock, CheckCircle } from "lucide-react";
 
 export function UsersTab() {
   const { toast } = useToast();
@@ -18,6 +18,7 @@ export function UsersTab() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [promotingUser, setPromotingUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [resendingInvite, setResendingInvite] = useState<string | null>(null);
 
   const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ['/api/users'],
@@ -105,6 +106,33 @@ export function UsersTab() {
     },
   });
 
+  // Mutation para reenviar convite
+  const resendInviteMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return await apiRequest('POST', `/api/users/${userId}/resend-invite`);
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Convite reenviado!",
+        description: `Novo link de convite gerado. Link copiado para a área de transferência.`,
+      });
+      // Copiar link automaticamente
+      if (data.inviteLink) {
+        navigator.clipboard.writeText(data.inviteLink);
+      }
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      setResendingInvite(null);
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Falha ao reenviar convite.",
+        variant: "destructive",
+      });
+      setResendingInvite(null);
+    },
+  });
+
   const handleDeleteUser = (userId: string) => {
     if (confirm('Tem certeza que deseja remover este usuário?')) {
       deleteUserMutation.mutate(userId);
@@ -117,6 +145,37 @@ export function UsersTab() {
 
   const handleEditUser = (user: User) => {
     setEditingUser(user);
+  };
+
+  const handleResendInvite = (userId: string) => {
+    setResendingInvite(userId);
+    resendInviteMutation.mutate(userId);
+  };
+
+  const handleCopyInviteLink = async (user: User) => {
+    if (user.inviteToken) {
+      const baseUrl = window.location.origin;
+      const inviteLink = `${baseUrl}/invite/${user.inviteToken}`;
+      
+      try {
+        await navigator.clipboard.writeText(inviteLink);
+        toast({
+          title: "Link copiado!",
+          description: "O link de convite foi copiado para a área de transferência.",
+        });
+      } catch (error) {
+        toast({
+          title: "Erro",
+          description: "Falha ao copiar o link.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const isInviteExpired = (user: User) => {
+    if (!user.inviteExpiresAt) return false;
+    return new Date(user.inviteExpiresAt) < new Date();
   };
 
   if (isLoading) {
@@ -198,6 +257,9 @@ export function UsersTab() {
                 Função
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Ações
               </th>
             </tr>
@@ -242,7 +304,29 @@ export function UsersTab() {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center space-x-2">
+                  {user.isInvitePending ? (
+                    <div className="flex items-center">
+                      {isInviteExpired(user) ? (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Expirado
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Aguardando
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Ativo
+                    </span>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center space-x-1">
                     <Button
                       size="sm"
                       variant="outline"
@@ -252,16 +336,34 @@ export function UsersTab() {
                       <Edit className="w-3 h-3 mr-1" />
                       Editar
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-red-600 border-red-300 hover:bg-red-50"
-                      onClick={() => handleDeleteUser(user.id)}
-                      disabled={deleteUserMutation.isPending}
-                    >
-                      <Trash2 className="w-3 h-3 mr-1" />
-                      Remover
-                    </Button>
+                    
+                    {/* Mostrar botões de convite apenas para usuários pendentes */}
+                    {user.isInvitePending && (
+                      <>
+                        {user.inviteToken && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                            onClick={() => handleCopyInviteLink(user)}
+                            title="Copiar link de convite"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                          onClick={() => handleResendInvite(user.id)}
+                          disabled={resendingInvite === user.id}
+                          title={isInviteExpired(user) ? "Reenviar convite (expirado)" : "Reenviar convite"}
+                        >
+                          <Link className="w-3 h-3" />
+                        </Button>
+                      </>
+                    )}
+                    
                     <Button
                       size="sm"
                       variant="outline"
@@ -269,6 +371,16 @@ export function UsersTab() {
                       onClick={() => handlePromoteUser(user)}
                     >
                       Promover
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-red-600 border-red-300 hover:bg-red-50"
+                      onClick={() => handleDeleteUser(user.id)}
+                      disabled={deleteUserMutation.isPending}
+                    >
+                      <Trash2 className="w-3 h-3" />
                     </Button>
                   </div>
                 </td>

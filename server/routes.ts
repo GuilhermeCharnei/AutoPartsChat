@@ -412,6 +412,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Resend invite route
+  app.post('/api/users/:id/resend-invite', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Get current user
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+      
+      // Generate new invite token
+      const inviteToken = `invite_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      
+      // Update user with new invite token
+      const updatedUser = await storage.updateUser(id, {
+        inviteToken,
+        inviteExpiresAt,
+        isInvitePending: true
+      });
+      
+      const inviteLink = `${req.protocol}://${req.get('host')}/invite/${inviteToken}`;
+      
+      // Log invite details (in production, send email)
+      console.log(`
+      ====== CONVITE REENVIADO ======
+      Email: ${user.email}
+      Nome: ${user.firstName} ${user.lastName}
+      Link: ${inviteLink}
+      Expira: ${inviteExpiresAt.toLocaleString('pt-BR')}
+      ===============================
+      `);
+      
+      res.json({ 
+        ...updatedUser,
+        inviteLink,
+        message: `Novo convite enviado para ${user.email}. Link válido por 7 dias.`
+      });
+    } catch (error) {
+      console.error("Error resending invite:", error);
+      res.status(500).json({ message: "Erro ao reenviar convite" });
+    }
+  });
+
   // Delete user route
   app.delete('/api/users/:id', isAuthenticated, async (req, res) => {
     try {
