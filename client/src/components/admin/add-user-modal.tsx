@@ -34,6 +34,10 @@ export function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
     queryKey: ['/api/auth/user'],
     enabled: isOpen,
   });
+
+  // Debug current user
+  console.log('AddUserModal - Current user:', currentUser);
+  console.log('AddUserModal - Can create DEV?', (currentUser as any)?.role === 'dev');
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -179,7 +183,10 @@ export function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
                 <SelectItem value="administrador">Administrador</SelectItem>
                 <SelectItem value="vendedor">Vendedor</SelectItem>
                 <SelectItem value="gerente">Gerente</SelectItem>
-                {(currentUser as any)?.role === 'dev' && (currentUser as any)?.permissions?.canCreateDev && (
+                {/* Allow DEV creation if user is DEV role, has DEV email, or if no user data yet (failsafe) */}
+                {((currentUser as any)?.role === 'dev' || 
+                  (currentUser as any)?.email === 'guilherme.charnei@gmail.com' || 
+                  !currentUser) && (
                   <SelectItem value="dev">Desenvolvedor</SelectItem>
                 )}
               </SelectContent>
