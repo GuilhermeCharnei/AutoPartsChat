@@ -474,6 +474,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Toggle user status route (activate/deactivate)
+  app.patch('/api/users/:id/status', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { isActive } = req.body;
+      
+      const user = await storage.updateUser(id, { isActive });
+      res.json({ 
+        ...user,
+        message: isActive ? "Usuário ativado com sucesso" : "Usuário desativado com sucesso"
+      });
+    } catch (error) {
+      console.error("Error updating user status:", error);
+      res.status(500).json({ message: "Erro ao alterar status do usuário" });
+    }
+  });
+
   // Delete user route
   app.delete('/api/users/:id', isAuthenticated, async (req, res) => {
     try {

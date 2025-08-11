@@ -19,6 +19,8 @@ export function UsersTab() {
   const [promotingUser, setPromotingUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [resendingInvite, setResendingInvite] = useState<string | null>(null);
+  const [deactivatingUser, setDeactivatingUser] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ['/api/users'],
@@ -26,12 +28,18 @@ export function UsersTab() {
 
 
 
-  // Filtrar usuários baseado na busca
-  const filteredUsers = users.filter(user =>
-    user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtrar usuários baseado na busca e status
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || 
+                         (statusFilter === 'active' && user.isActive !== false) ||
+                         (statusFilter === 'inactive' && user.isActive === false);
+    
+    return matchesSearch && matchesStatus;
+  });
 
   const updatePermissionsMutation = useMutation({
     mutationFn: async ({ userId, permissions }: { userId: string; permissions: any }) => {
@@ -133,6 +141,29 @@ export function UsersTab() {
     },
   });
 
+  // Mutation para desativar/ativar usuário
+  const toggleUserStatusMutation = useMutation({
+    mutationFn: async ({ userId, isActive }: { userId: string; isActive: boolean }) => {
+      return await apiRequest('PATCH', `/api/users/${userId}/status`, { isActive });
+    },
+    onSuccess: (_, variables) => {
+      toast({
+        title: "Sucesso!",
+        description: variables.isActive ? "Usuário ativado com sucesso." : "Usuário desativado com sucesso.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      setDeactivatingUser(null);
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Falha ao alterar status do usuário.",
+        variant: "destructive",
+      });
+      setDeactivatingUser(null);
+    },
+  });
+
   const handleDeleteUser = (userId: string) => {
     if (confirm('Tem certeza que deseja remover este usuário?')) {
       deleteUserMutation.mutate(userId);
@@ -178,6 +209,14 @@ export function UsersTab() {
     return new Date(user.inviteExpiresAt) < new Date();
   };
 
+  const handleToggleUserStatus = (userId: string, currentStatus: boolean) => {
+    const action = currentStatus ? 'desativar' : 'ativar';
+    if (confirm(`Tem certeza que deseja ${action} este usuário?`)) {
+      setDeactivatingUser(userId);
+      toggleUserStatusMutation.mutate({ userId, isActive: !currentStatus });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-4 flex justify-center">
@@ -193,15 +232,29 @@ export function UsersTab() {
         
         {/* Search Bar */}
         <div className="flex items-center justify-between mb-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              type="text"
-              placeholder="Buscar usuário por nome ou email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+          <div className="flex items-center space-x-4 flex-1">
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                type="text"
+                placeholder="Buscar usuário por nome ou email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600">Status:</span>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as any)}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">Todos</option>
+                <option value="active">Ativos</option>
+                <option value="inactive">Desativados</option>
+              </select>
+            </div>
           </div>
           <div className="flex space-x-2 ml-4">
             <Button 
@@ -319,9 +372,13 @@ export function UsersTab() {
                       )}
                     </div>
                   ) : (
-                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                    <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                      user.isActive === false 
+                        ? 'bg-gray-100 text-gray-800' 
+                        : 'bg-green-100 text-green-800'
+                    }`}>
                       <CheckCircle className="w-3 h-3 mr-1" />
-                      Ativo
+                      {user.isActive === false ? 'Desativado' : 'Ativo'}
                     </span>
                   )}
                 </td>
@@ -373,12 +430,30 @@ export function UsersTab() {
                       Promover
                     </Button>
                     
+                    {/* Botão para ativar/desativar usuário */}
+                    {!user.isInvitePending && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className={user.isActive === false 
+                          ? "text-green-600 border-green-300 hover:bg-green-50" 
+                          : "text-orange-600 border-orange-300 hover:bg-orange-50"
+                        }
+                        onClick={() => handleToggleUserStatus(user.id, user.isActive !== false)}
+                        disabled={deactivatingUser === user.id}
+                        title={user.isActive === false ? "Ativar usuário" : "Desativar usuário"}
+                      >
+                        {user.isActive === false ? 'Ativar' : 'Desativar'}
+                      </Button>
+                    )}
+                    
                     <Button
                       size="sm"
                       variant="outline"
                       className="text-red-600 border-red-300 hover:bg-red-50"
                       onClick={() => handleDeleteUser(user.id)}
                       disabled={deleteUserMutation.isPending}
+                      title="Remover permanentemente"
                     >
                       <Trash2 className="w-3 h-3" />
                     </Button>
