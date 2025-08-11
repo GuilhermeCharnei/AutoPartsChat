@@ -8,14 +8,26 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { X } from "lucide-react";
+import { InviteSuccessModal } from "./invite-success-modal";
 
 interface AddUserModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+interface InviteData {
+  email: string;
+  firstName: string;
+  lastName: string;
+  inviteLink: string;
+  expiresAt: string;
+  role: string;
+}
+
 export function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
   const { toast } = useToast();
+  const [showInviteSuccess, setShowInviteSuccess] = useState(false);
+  const [inviteData, setInviteData] = useState<InviteData | null>(null);
 
   // Get current user to check if they can create DEV users
   const { data: currentUser } = useQuery({
@@ -38,14 +50,30 @@ export function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
 
   const addUserMutation = useMutation({
     mutationFn: async (userData: any) => {
-      await apiRequest('POST', '/api/users', userData);
+      return await apiRequest('POST', '/api/users', userData);
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      toast({
-        title: "Sucesso",
-        description: "Usuário criado com sucesso!",
-      });
+      
+      // Extract invite data from response
+      if (data.inviteToken) {
+        const baseUrl = window.location.origin;
+        setInviteData({
+          email: data.email,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          inviteLink: `${baseUrl}/invite/${data.inviteToken}`,
+          expiresAt: data.inviteExpiresAt,
+          role: data.role
+        });
+        setShowInviteSuccess(true);
+      } else {
+        toast({
+          title: "Sucesso",
+          description: "Usuário criado com sucesso!",
+        });
+      }
+      
       onClose();
       setFormData({
         firstName: '',
@@ -218,6 +246,12 @@ export function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
           </div>
         </form>
       </div>
+      
+      <InviteSuccessModal
+        isOpen={showInviteSuccess}
+        onClose={() => setShowInviteSuccess(false)}
+        inviteData={inviteData}
+      />
     </div>
   );
 }

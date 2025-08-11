@@ -332,7 +332,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `);
       
       res.json({ 
-        ...user, 
+        ...user,
+        inviteLink: `${req.protocol}://${req.get('host')}/invite/${inviteToken}`,
         message: `Convite enviado para ${userData.email}. Link válido por 7 dias.`
       });
     } catch (error: any) {
@@ -344,6 +345,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ message: "Erro interno do servidor. Tente novamente." });
       }
+    }
+  });
+
+  // Invite validation route
+  app.get('/api/invite/:token', async (req, res) => {
+    try {
+      const { token } = req.params;
+      const user = await storage.getUserByInviteToken(token);
+      
+      if (!user) {
+        return res.status(404).json({ message: "Convite não encontrado" });
+      }
+      
+      const now = new Date();
+      const isExpired = user.inviteExpiresAt && new Date(user.inviteExpiresAt) < now;
+      const isActivated = !user.isInvitePending;
+      
+      res.json({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        inviteExpiresAt: user.inviteExpiresAt,
+        isExpired,
+        isActivated
+      });
+    } catch (error) {
+      console.error("Error validating invite:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
+    }
+  });
+
+  // Accept invite route
+  app.post('/api/invite/:token/accept', async (req, res) => {
+    try {
+      const { token } = req.params;
+      const user = await storage.getUserByInviteToken(token);
+      
+      if (!user) {
+        return res.status(404).json({ message: "Convite não encontrado" });
+      }
+      
+      const now = new Date();
+      const isExpired = user.inviteExpiresAt && new Date(user.inviteExpiresAt) < now;
+      
+      if (isExpired) {
+        return res.status(400).json({ message: "Convite expirado" });
+      }
+      
+      if (!user.isInvitePending) {
+        return res.status(400).json({ message: "Convite já foi aceito" });
+      }
+      
+      // Activate user account
+      await storage.updateUser(user.id, {
+        isInvitePending: false,
+        inviteToken: null,
+        isActive: true
+      });
+      
+      res.json({ message: "Convite aceito com sucesso" });
+    } catch (error) {
+      console.error("Error accepting invite:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
     }
   });
 

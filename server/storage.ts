@@ -72,6 +72,7 @@ export interface IStorage {
   updateUserPermissions(userId: string, permissions: Record<string, boolean>): Promise<User>;
   deleteUser(userId: string): Promise<boolean>;
   updateUser(id: string, data: any): Promise<User>;
+  getUserByInviteToken(token: string): Promise<User | undefined>;
   
   // OpenAI Config operations
   getOpenAIConfig(): Promise<any>;
@@ -91,6 +92,11 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async getUserByInviteToken(token: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.inviteToken, token));
     return user;
   }
 

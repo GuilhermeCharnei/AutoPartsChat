@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import TempLogin from "@/pages/temp-login";
+import { InvitePage } from "@/pages/invite-page";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -15,6 +16,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/temp-login" component={TempLogin} />
+      <Route path="/invite/:token" component={InvitePage} />
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (
