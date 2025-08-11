@@ -75,8 +75,10 @@ export function PromoteUserModal({ isOpen, onClose, user }: PromoteUserModalProp
     }
     
     // Only DEV can promote to DEV
-    if ((currentUser as any)?.role === 'dev' && 
-        (currentUser as any)?.permissions?.canCreateDev) {
+    console.log('Current user role:', (currentUser as any)?.role);
+    console.log('Available roles count:', roles.length);
+    
+    if ((currentUser as any)?.role === 'dev') {
       roles.push({ value: 'dev', label: 'Desenvolvedor' });
     }
     
@@ -109,6 +111,7 @@ export function PromoteUserModal({ isOpen, onClose, user }: PromoteUserModalProp
                'Vendedor'}
             </strong>
           </p>
+
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

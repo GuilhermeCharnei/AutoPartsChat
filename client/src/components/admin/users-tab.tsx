@@ -146,6 +146,33 @@ export function UsersTab() {
           </div>
           <div className="flex space-x-2 ml-4">
             <Button 
+              onClick={async () => {
+                try {
+                  await apiRequest('POST', '/api/auth/temp-login', {
+                    email: "guilherme.charnei@gmail.com",
+                    role: "dev", 
+                    name: "Guilherme Charnei"
+                  });
+                  queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+                  queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+                  toast({
+                    title: "Login DEV",
+                    description: "Logado como desenvolvedor para teste",
+                  });
+                } catch (error) {
+                  toast({
+                    title: "Erro",
+                    description: "Falha no login temporário",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              variant="outline"
+              className="bg-purple-100 text-purple-700 border-purple-300 hover:bg-purple-200"
+            >
+              Login DEV
+            </Button>
+            <Button 
               onClick={() => setShowAddUser(true)}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
