@@ -26,7 +26,7 @@ export function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
     firstName: '',
     lastName: '',
     email: '',
-    role: 'seller',
+    role: 'vendedor',
     permissions: {
       viewStock: false,
       editProducts: false,
@@ -51,7 +51,7 @@ export function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
         firstName: '',
         lastName: '',
         email: '',
-        role: 'seller',
+        role: 'vendedor',
         permissions: {
           viewStock: false,
           editProducts: false,
@@ -148,9 +148,9 @@ export function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Administrador</SelectItem>
-                <SelectItem value="seller">Vendedor</SelectItem>
-                <SelectItem value="manager">Gerente</SelectItem>
+                <SelectItem value="administrador">Administrador</SelectItem>
+                <SelectItem value="vendedor">Vendedor</SelectItem>
+                <SelectItem value="gerente">Gerente</SelectItem>
                 {(currentUser as any)?.role === 'dev' && (currentUser as any)?.permissions?.canCreateDev && (
                   <SelectItem value="dev">Desenvolvedor</SelectItem>
                 )}

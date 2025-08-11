@@ -9,12 +9,14 @@ import { apiRequest } from "@/lib/queryClient";
 import { User } from "@shared/schema";
 import { AddUserModal } from "./add-user-modal";
 import { EditUserModal } from "./edit-user-modal";
+import { PromoteUserModal } from "./promote-user-modal";
 import { Search, User as UserIcon, UserPlus, Edit, Trash2 } from "lucide-react";
 
 export function UsersTab() {
   const { toast } = useToast();
   const [showAddUser, setShowAddUser] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [promotingUser, setPromotingUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data: users = [], isLoading } = useQuery<User[]>({
@@ -109,10 +111,8 @@ export function UsersTab() {
     }
   };
 
-  const handlePromoteUser = (userId: string) => {
-    if (confirm('Tem certeza que deseja promover este usuário a administrador?')) {
-      promoteUserMutation.mutate({ userId, role: 'administrador' });
-    }
+  const handlePromoteUser = (user: User) => {
+    setPromotingUser(user);
   };
 
   const handleEditUser = (user: User) => {
@@ -204,11 +204,13 @@ export function UsersTab() {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                     user.role === 'dev' ? 'bg-purple-100 text-purple-800' :
-                    user.role === 'admin' ? 'bg-blue-100 text-blue-800' :
+                    user.role === 'administrador' ? 'bg-blue-100 text-blue-800' :
+                    user.role === 'gerente' ? 'bg-yellow-100 text-yellow-800' :
                     'bg-green-100 text-green-800'
                   }`}>
                     {user.role === 'dev' ? 'DEV' : 
-                     user.role === 'admin' ? 'Admin' : 
+                     user.role === 'administrador' ? 'Admin' :
+                     user.role === 'gerente' ? 'Gerente' :
                      'Vendedor'}
                   </span>
                 </td>
@@ -233,17 +235,14 @@ export function UsersTab() {
                       <Trash2 className="w-3 h-3 mr-1" />
                       Remover
                     </Button>
-                    {user.role !== 'admin' && user.role !== 'dev' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-green-600 border-green-300 hover:bg-green-50"
-                        onClick={() => handlePromoteUser(user.id)}
-                        disabled={promoteUserMutation.isPending}
-                      >
-                        Promover
-                      </Button>
-                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-green-600 border-green-300 hover:bg-green-50"
+                      onClick={() => handlePromoteUser(user)}
+                    >
+                      Promover
+                    </Button>
                   </div>
                 </td>
               </tr>
@@ -264,6 +263,12 @@ export function UsersTab() {
           onClose={() => setEditingUser(null)} 
         />
       )}
+
+      <PromoteUserModal 
+        isOpen={!!promotingUser}
+        onClose={() => setPromotingUser(null)}
+        user={promotingUser}
+      />
     </div>
   );
 }
