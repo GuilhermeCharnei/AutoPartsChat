@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,12 @@ interface AddUserModalProps {
 
 export function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
   const { toast } = useToast();
+
+  // Get current user to check if they can create DEV users
+  const { data: currentUser } = useQuery({
+    queryKey: ['/api/auth/user'],
+    enabled: isOpen,
+  });
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -55,10 +61,11 @@ export function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
         }
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || "Falha ao criar usuário";
       toast({
         title: "Erro",
-        description: "Falha ao criar usuário",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -144,6 +151,9 @@ export function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
                 <SelectItem value="admin">Administrador</SelectItem>
                 <SelectItem value="seller">Vendedor</SelectItem>
                 <SelectItem value="manager">Gerente</SelectItem>
+                {(currentUser as any)?.role === 'dev' && (currentUser as any)?.permissions?.canCreateDev && (
+                  <SelectItem value="dev">Desenvolvedor</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>

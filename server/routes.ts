@@ -43,7 +43,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               viewReports: true,
               manageUsers: true,
               adminAccess: true,
-              apiConfig: true
+              apiConfig: true,
+              canCreateDev: true
             };
             break;
           case 'administrador':
@@ -285,6 +286,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/users', isAuthenticated, async (req, res) => {
     try {
       const userData = req.body;
+      const currentUserId = (req as any).user?.claims?.sub;
+      const currentUser = await storage.getUser(currentUserId);
+      
+      // Check if user is trying to create a DEV role
+      if (userData.role === 'dev') {
+        // Only allow if current user is DEV and has canCreateDev permission
+        if (!currentUser || currentUser.role !== 'dev' || !(currentUser.permissions as any)?.canCreateDev) {
+          return res.status(403).json({ 
+            message: "Apenas usuários DEV podem criar outros usuários DEV." 
+          });
+        }
+      }
       
       // Check if email already exists
       const existingUser = await storage.getUserByEmail(userData.email);
