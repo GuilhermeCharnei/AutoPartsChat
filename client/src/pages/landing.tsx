@@ -29,6 +29,15 @@ export default function Landing() {
                 Entrar no Sistema
               </Button>
               
+              <Button 
+                onClick={() => window.location.href = '/temp-login'}
+                variant="outline"
+                className="w-full"
+              >
+                <i className="fas fa-user-cog mr-2"></i>
+                Login Temporário (Demo)
+              </Button>
+              
               <p className="text-xs text-text-secondary text-center">
                 Faça login para acessar o painel de vendas e chat
               </p>

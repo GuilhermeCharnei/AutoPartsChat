@@ -38,7 +38,7 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       maxAge: sessionTtl,
     },
   });
@@ -145,17 +145,41 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      prompt: "login consent",
-      scope: ["openid", "email", "profile", "offline_access"],
-    })(req, res, next);
+    console.log("Login attempt for hostname:", req.hostname);
+    console.log("Available domains:", process.env.REPLIT_DOMAINS);
+    
+    // Use the first domain from REPLIT_DOMAINS for OAuth strategy
+    const domains = process.env.REPLIT_DOMAINS!.split(",");
+    const targetDomain = domains[0];
+    
+    try {
+      passport.authenticate(`replitauth:${targetDomain}`, {
+        prompt: "login consent",
+        scope: ["openid", "email", "profile", "offline_access"],
+      })(req, res, next);
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ error: "Login failed", message: error instanceof Error ? error.message : "Unknown error" });
+    }
   });
 
   app.get("/api/callback", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    console.log("OAuth callback for hostname:", req.hostname);
+    
+    // Use the first domain from REPLIT_DOMAINS for OAuth strategy
+    const domains = process.env.REPLIT_DOMAINS!.split(",");
+    const targetDomain = domains[0];
+    
+    passport.authenticate(`replitauth:${targetDomain}`, {
       successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
-    })(req, res, next);
+    })(req, res, (err: any) => {
+      if (err) {
+        console.error("OAuth callback error:", err);
+        return res.redirect("/api/login");
+      }
+      console.log("OAuth callback successful");
+    });
   });
 
   app.get("/api/logout", (req, res) => {
