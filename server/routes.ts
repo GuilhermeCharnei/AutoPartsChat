@@ -93,19 +93,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Create session manually
+      // Create session manually and simulate passport login
       (req as any).session = (req as any).session || {};
-      (req as any).session.user = {
+      
+      // Create user object compatible with passport
+      const sessionUser = {
         id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
         profileImageUrl: user.profileImageUrl,
-        claims: { sub: user.id }
+        claims: { sub: user.id },
+        expires_at: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60), // 7 days from now
+        access_token: 'temp-token',
+        refresh_token: 'temp-refresh-token'
       };
+      
+      // Set the user in req for passport compatibility
+      (req as any).user = sessionUser;
+      
+      // Mark as authenticated for passport
+      (req as any).session.passport = {
+        user: sessionUser
+      };
+      
+      // Save session to ensure persistence
+      (req as any).session.save((err: any) => {
+        if (err) {
+          console.error('Session save error:', err);
+        }
+      });
 
-      res.json({ success: true, user: (req as any).session.user });
+      res.json({ success: true, user: sessionUser });
     } catch (error) {
       console.error('Temp login error:', error);
       res.status(500).json({ message: 'Erro no login temporário' });

@@ -196,8 +196,25 @@ export async function setupAuth(app: Express) {
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
+  const session = (req as any).session;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  // Check for temporary login session first
+  if (session && session.passport && session.passport.user) {
+    const tempUser = session.passport.user;
+    
+    if (tempUser.access_token === 'temp-token') {
+      const now = Math.floor(Date.now() / 1000);
+      
+      if (now <= tempUser.expires_at) {
+        // Set user in req for routes to access
+        (req as any).user = tempUser;
+        return next();
+      }
+    }
+  }
+
+  // Standard OAuth authentication check
+  if (!req.isAuthenticated() || !user || !user.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 

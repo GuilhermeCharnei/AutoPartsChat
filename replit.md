@@ -8,7 +8,7 @@ This is a full-stack web application for automating sales through WhatsApp for a
 
 Preferred communication style: Simple, everyday language.
 
-### Recent User Requests (January 2025)
+### Recent User Requests (August 2025)
 - Implemented resizable divider functionality between conversation list and chat area
 - Added "Conversas Ativas" (Active Conversations) dedicated tab in admin panel
 - Enhanced layout flexibility with toggle between fixed and resizable layouts
@@ -19,6 +19,14 @@ Preferred communication style: Simple, everyday language.
 - Created WhatsApp API setup configuration tab for bot functionality
 - Implemented user permission management system with role-based access control
 - Added profile settings with company information and photo upload capabilities
+
+### Latest Fixes (August 12, 2025)
+- Fixed OAuth authentication issue where new users were stuck on profile page
+- Changed default user role from 'vendedor' to 'gerente' for better initial experience
+- Implemented proper session management for temporary login system
+- Fixed authentication middleware to support both OAuth and temporary login sessions
+- Added temporary login button as development/testing alternative
+- Resolved database conflict errors in user upsert operations
 
 ## System Architecture
 
