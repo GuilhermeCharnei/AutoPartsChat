@@ -13,7 +13,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { UsersTab } from "./users-tab";
-import { InventoryTab } from "./inventory-tab-new";
+import { InventoryMobile as InventoryTab } from "./inventory-mobile";
 import { ReportsTab } from "./reports-tab";
 import { ActiveConversationsTab } from "./active-conversations-tab";
 import { DashboardTab } from "./dashboard-tab";
@@ -21,11 +21,16 @@ import { ProfileSettingsTab } from "./profile-settings-tab";
 import { WhatsAppSetupTab } from "./whatsapp-setup-tab";
 import { PermissionsTab } from "./permissions-tab";
 import { OpenAIConfigTab } from "./openai-config-tab";
+import { AdminPanelMobile } from "./admin-panel-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/hooks/usePermissions";
 
 export function AdminPanel() {
+  // Check if it's mobile and use mobile component
+  if (typeof window !== 'undefined' && window.innerWidth < 768) {
+    return <AdminPanelMobile />;
+  }
   const { canAccess, role } = usePermissions();
   
   // Set initial tab based on permissions
