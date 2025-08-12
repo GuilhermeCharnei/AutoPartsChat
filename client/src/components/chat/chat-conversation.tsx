@@ -233,55 +233,48 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-chat-incoming">
+    <div className="flex-1 flex flex-col bg-chat-incoming max-h-screen">
       {/* Chat Header */}
-      <div className="bg-whatsapp-panel px-4 py-3 border-b border-border-light flex items-center justify-between">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
+      <div className="bg-whatsapp-panel px-2 sm:px-4 py-2 sm:py-3 border-b border-border-light flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           {conversation?.customerAvatar ? (
             <img
               src={conversation.customerAvatar}
               alt={conversation.customerName}
-              className="w-8 sm:w-10 h-8 sm:h-10 rounded-full object-cover flex-shrink-0"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
             />
           ) : (
-            <div className="w-8 sm:w-10 h-8 sm:h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
-              <i className="fas fa-user text-gray-400 text-sm"></i>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-user text-gray-400 text-xs sm:text-sm"></i>
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <h3 className="font-semibold text-text-primary text-sm sm:text-base truncate">
+            <h3 className="font-semibold text-text-primary text-xs sm:text-base truncate">
               {conversation?.customerName || 'Cliente'}
             </h3>
-            <div className="flex items-center gap-2">
-              <p className="text-xs sm:text-sm text-whatsapp">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <p className="text-xs text-whatsapp">
                 {conversation?.status === 'active' ? 'Online' : 'Offline'}
               </p>
               <AIChatIndicator isAIEnabled={isAIEnabled} isTyping={isAITyping} />
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowTransferModal(true)}
-            className="text-xs px-2 sm:px-3 hidden sm:flex"
+            className="text-xs px-1 sm:px-3 h-7 sm:h-8"
           >
-            <UserCheck className="w-3 h-3 mr-1" />
-            Transferir
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowTransferModal(true)}
-            className="text-xs px-2 sm:hidden"
-          >
-            <UserCheck className="w-3 h-3" />
+            <UserCheck className="w-3 h-3 sm:mr-1" />
+            <span className="hidden sm:inline">Transferir</span>
           </Button>
           <Button
             size="sm"
             onClick={() => setShowFinalizeModal(true)}
-            className="bg-green-600 hover:bg-green-700 text-white text-xs px-2 sm:px-3"
+            className="bg-green-600 hover:bg-green-700 text-white text-xs px-1 sm:px-3 h-7 sm:h-8"
+            disabled={selectedProducts.length === 0 && getOrderItems().length === 0}
           >
             <Package className="w-3 h-3 sm:mr-1" />
             <span className="hidden sm:inline">Finalizar</span>
@@ -289,12 +282,16 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
         </div>
       </div>
 
-      {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin px-2 sm:px-4 py-4 space-y-4">
+      {/* Chat Messages - Ajustar altura baseada na presença de produtos */}
+      <div 
+        className={`flex-1 overflow-y-auto scrollbar-thin px-2 sm:px-4 py-2 sm:py-4 space-y-2 sm:space-y-4 ${
+          selectedProducts.length > 0 ? 'max-h-[40vh] sm:max-h-[50vh]' : 'max-h-[70vh] sm:max-h-[80vh]'
+        }`}
+      >
         {messages.length === 0 ? (
-          <div className="text-center text-text-secondary py-8">
-            <i className="fas fa-comment-dots text-2xl mb-2"></i>
-            <p>Nenhuma mensagem ainda</p>
+          <div className="text-center text-text-secondary py-4 sm:py-8">
+            <i className="fas fa-comment-dots text-xl sm:text-2xl mb-2"></i>
+            <p className="text-sm sm:text-base">Nenhuma mensagem ainda</p>
           </div>
         ) : (
           messages.map((message) => (
@@ -304,102 +301,98 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input */}
-      <div className="bg-whatsapp-panel px-2 sm:px-4 py-3 border-t border-border-light">
-        <form onSubmit={handleSendMessage} className="flex items-center gap-3">
-          <button type="button" className="text-text-secondary hover:text-text-primary">
-            <i className="fas fa-paperclip"></i>
-          </button>
-          <div className="flex-1 relative">
-            <Input
-              type="text"
-              placeholder="Digite uma mensagem..."
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              className="pr-12 bg-white border-border-light focus:border-whatsapp"
-            />
-            <button type="button" className="absolute right-3 top-2.5 text-text-secondary hover:text-text-primary">
-              <i className="fas fa-smile"></i>
-            </button>
-          </div>
-          <Button
-            type="submit"
-            disabled={!messageText.trim() || sendMessageMutation.isPending}
-            className="w-10 h-10 bg-whatsapp hover:bg-whatsapp-hover text-white rounded-full p-0"
-          >
-            <i className="fas fa-paper-plane"></i>
-          </Button>
-        </form>
-        
-        {/* Selected Products */}
+      {/* Message Input Area - Área fixa no final */}
+      <div className="bg-whatsapp-panel border-t border-border-light flex-shrink-0">
+        {/* Selected Products - Compacto no celular */}
         {selectedProducts.length > 0 && (
-          <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
-            <h4 className="text-sm font-medium text-green-800 mb-2">
-              Produtos Selecionados ({selectedProducts.length})
-            </h4>
-            <div className="space-y-2">
-              {selectedProducts.map((product) => (
-                <div key={product.id} className="flex items-center justify-between bg-white p-2 rounded border">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{product.name}</p>
-                    <p className="text-xs text-gray-500">
-                      {product.codigo} | {product.quantity}x R$ {parseFloat(product.price).toFixed(2)}
-                    </p>
+          <div className="px-2 sm:px-4 py-2 border-b border-border-light">
+            <div className="bg-green-50 rounded-lg border border-green-200 p-2 sm:p-3">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs sm:text-sm font-medium text-green-800">
+                  Produtos ({selectedProducts.length})
+                </h4>
+                <span className="text-xs sm:text-sm font-semibold text-green-600">
+                  R$ {selectedProducts.reduce((sum, p) => sum + (parseFloat(p.price) * p.quantity), 0).toFixed(2)}
+                </span>
+              </div>
+              <div className="max-h-20 sm:max-h-32 overflow-y-auto space-y-1 sm:space-y-2">
+                {selectedProducts.map((product) => (
+                  <div key={product.id} className="flex items-center justify-between bg-white p-1 sm:p-2 rounded border">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs sm:text-sm font-medium truncate">{product.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {product.codigo} | {product.quantity}x
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 sm:gap-2">
+                      <span className="text-xs sm:text-sm font-medium text-green-600">
+                        R$ {(parseFloat(product.price) * product.quantity).toFixed(2)}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveProduct(product.id)}
+                        className="h-5 w-5 sm:h-6 sm:w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-2 w-2 sm:h-3 sm:w-3" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-green-600">
-                      R$ {(parseFloat(product.price) * product.quantity).toFixed(2)}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveProduct(product.id)}
-                      className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              <div className="border-t pt-2">
-                <div className="flex justify-between items-center font-semibold">
-                  <span>Total:</span>
-                  <span className="text-green-600">
-                    R$ {selectedProducts.reduce((sum, p) => sum + (parseFloat(p.price) * p.quantity), 0).toFixed(2)}
-                  </span>
-                </div>
+                ))}
               </div>
             </div>
           </div>
         )}
 
-        {/* Quick Actions */}
-        <div className="flex flex-wrap gap-2 mt-3">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-xs flex-shrink-0"
-            onClick={() => setShowProductModal(true)}
-          >
-            <i className="fas fa-plus mr-1"></i> 
-            <span className="hidden sm:inline">Adicionar Produto</span>
-            <span className="sm:hidden">Produto</span>
-          </Button>
-          <Button variant="outline" size="sm" className="text-xs flex-shrink-0">
-            <i className="fas fa-calculator mr-1"></i>
-            <span className="hidden sm:inline">Calcular Frete</span>
-            <span className="sm:hidden">Frete</span>
-          </Button>
-          <Button 
-            size="sm" 
-            onClick={() => setShowFinalizeModal(true)}
-            className="bg-whatsapp hover:bg-whatsapp-hover text-white text-xs flex-shrink-0"
-            disabled={selectedProducts.length === 0 && getOrderItems().length === 0}
-          >
-            <i className="fas fa-check mr-1"></i>
-            <span className="hidden sm:inline">Finalizar Pedido</span>
-            <span className="sm:hidden">Finalizar</span>
-          </Button>
+        {/* Message Input */}
+        <div className="px-2 sm:px-4 py-2 sm:py-3">
+          <form onSubmit={handleSendMessage} className="flex items-center gap-2 sm:gap-3">
+            <button type="button" className="text-text-secondary hover:text-text-primary hidden sm:block">
+              <i className="fas fa-paperclip"></i>
+            </button>
+            <div className="flex-1 relative">
+              <Input
+                type="text"
+                placeholder="Digite uma mensagem..."
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                className="pr-8 sm:pr-12 bg-white border-border-light focus:border-whatsapp text-sm"
+              />
+              <button type="button" className="absolute right-2 sm:right-3 top-2 sm:top-2.5 text-text-secondary hover:text-text-primary">
+                <i className="fas fa-smile text-sm"></i>
+              </button>
+            </div>
+            <Button
+              type="submit"
+              disabled={!messageText.trim() || sendMessageMutation.isPending}
+              className="w-8 h-8 sm:w-10 sm:h-10 bg-whatsapp hover:bg-whatsapp-hover text-white rounded-full p-0"
+            >
+              <i className="fas fa-paper-plane text-xs sm:text-sm"></i>
+            </Button>
+          </form>
+          
+          {/* Quick Actions */}
+          <div className="flex flex-wrap gap-1 sm:gap-2 mt-2 sm:mt-3">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-xs flex-shrink-0 h-7 sm:h-8 px-2 sm:px-3"
+              onClick={() => setShowProductModal(true)}
+            >
+              <i className="fas fa-plus mr-1"></i> 
+              <span className="hidden sm:inline">Adicionar Produto</span>
+              <span className="sm:hidden">Produto</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-xs flex-shrink-0 h-7 sm:h-8 px-2 sm:px-3"
+            >
+              <i className="fas fa-calculator mr-1"></i>
+              <span className="hidden sm:inline">Calcular Frete</span>
+              <span className="sm:hidden">Frete</span>
+            </Button>
+          </div>
         </div>
       </div>
 
