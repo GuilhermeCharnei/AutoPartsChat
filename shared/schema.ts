@@ -33,7 +33,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  role: varchar("role").default("vendedor"), // dev, administrador, vendedor
+  role: varchar("role").default("gerente"), // dev, administrador, gerente, vendedor
   permissions: jsonb("permissions").default({}),
   isActive: boolean("is_active").notNull().default(true),
   phone: varchar("phone"),

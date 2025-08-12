@@ -30,8 +30,10 @@ export function AdminPanel() {
   
   // Set initial tab based on permissions
   const getInitialTab = () => {
-    if (role === 'vendedor') return 'profile';
-    return 'dashboard';
+    // Always start with dashboard for better user experience
+    // Users can navigate to their profile when needed
+    if (canAccess.canViewDashboard) return 'dashboard';
+    return 'profile';
   };
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'conversations' | 'users' | 'inventory' | 'reports' | 'profile' | 'whatsapp' | 'openai' | 'permissions'>(getInitialTab());

@@ -57,12 +57,24 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
+  // Set default permissions for new users (gerente role)
+  const defaultPermissions = {
+    viewStock: true,
+    editProducts: true,
+    viewReports: true,
+    manageUsers: true,
+    adminAccess: false,
+    apiConfig: false
+  };
+
   await storage.upsertUser({
     id: claims["sub"],
     email: claims["email"],
     firstName: claims["first_name"],
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
+    role: "gerente",
+    permissions: defaultPermissions,
   });
   
   // Auto-promote specific user to DEV role
