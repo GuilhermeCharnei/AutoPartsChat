@@ -9,9 +9,10 @@ import { Message, Conversation } from "@shared/schema";
 import { MessageBubble } from "./message-bubble";
 import { ChatTransferModal } from "@/components/admin/chat-transfer-modal";
 import { FinalizeOrderModal } from "@/components/admin/finalize-order-modal";
+import { ProductSelectionModal } from "@/components/admin/product-selection-modal";
 import { AIChatIndicator } from "./ai-chat-indicator";
 import { AiBotConversation } from "./ai-bot-conversation";
-import { UserCheck, Package, Bot, Sparkles } from "lucide-react";
+import { UserCheck, Package, Bot, Sparkles, Trash2 } from "lucide-react";
 
 interface ChatConversationProps {
   conversationId: number | null;
@@ -22,7 +23,15 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false);
   const [isAITyping, setIsAITyping] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState<Array<{
+    id: number;
+    codigo: string;
+    name: string;
+    price: string;
+    quantity: number;
+  }>>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -146,8 +155,19 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
     }
   };
 
-  // Extract order items from product messages
+  // Extract order items from selected products
   const getOrderItems = () => {
+    // First try to get items from selected products
+    if (selectedProducts.length > 0) {
+      return selectedProducts.map(product => ({
+        productId: product.id,
+        productName: product.name,
+        quantity: product.quantity,
+        price: product.price
+      }));
+    }
+
+    // Fallback to product messages
     const productMessages = messages.filter(msg => 
       msg.messageType === 'product' && msg.metadata
     );
@@ -160,6 +180,39 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
         quantity: product.quantity || 1,
         price: product.price || '0.00'
       };
+    });
+  };
+
+  const handleAddProduct = (product: any) => {
+    setSelectedProducts(prev => {
+      const existingIndex = prev.findIndex(p => p.id === product.id);
+      if (existingIndex >= 0) {
+        // Update quantity if product already exists
+        const updated = [...prev];
+        updated[existingIndex].quantity += product.quantity;
+        toast({
+          title: "Quantidade Atualizada!",
+          description: `${product.name} - Nova quantidade: ${updated[existingIndex].quantity}`,
+        });
+        return updated;
+      } else {
+        // Add new product
+        return [...prev, {
+          id: product.id,
+          codigo: product.codigo,
+          name: product.name,
+          price: product.price,
+          quantity: product.quantity
+        }];
+      }
+    });
+  };
+
+  const handleRemoveProduct = (productId: number) => {
+    setSelectedProducts(prev => prev.filter(p => p.id !== productId));
+    toast({
+      title: "Produto Removido",
+      description: "Produto removido do pedido",
     });
   };
 
@@ -278,9 +331,56 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
           </Button>
         </form>
         
+        {/* Selected Products */}
+        {selectedProducts.length > 0 && (
+          <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+            <h4 className="text-sm font-medium text-green-800 mb-2">
+              Produtos Selecionados ({selectedProducts.length})
+            </h4>
+            <div className="space-y-2">
+              {selectedProducts.map((product) => (
+                <div key={product.id} className="flex items-center justify-between bg-white p-2 rounded border">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{product.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {product.codigo} | {product.quantity}x R$ {parseFloat(product.price).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-green-600">
+                      R$ {(parseFloat(product.price) * product.quantity).toFixed(2)}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveProduct(product.id)}
+                      className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              <div className="border-t pt-2">
+                <div className="flex justify-between items-center font-semibold">
+                  <span>Total:</span>
+                  <span className="text-green-600">
+                    R$ {selectedProducts.reduce((sum, p) => sum + (parseFloat(p.price) * p.quantity), 0).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-2 mt-3">
-          <Button variant="outline" size="sm" className="text-xs flex-shrink-0">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-xs flex-shrink-0"
+            onClick={() => setShowProductModal(true)}
+          >
             <i className="fas fa-plus mr-1"></i> 
             <span className="hidden sm:inline">Adicionar Produto</span>
             <span className="sm:hidden">Produto</span>
@@ -294,6 +394,7 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
             size="sm" 
             onClick={() => setShowFinalizeModal(true)}
             className="bg-whatsapp hover:bg-whatsapp-hover text-white text-xs flex-shrink-0"
+            disabled={selectedProducts.length === 0 && getOrderItems().length === 0}
           >
             <i className="fas fa-check mr-1"></i>
             <span className="hidden sm:inline">Finalizar Pedido</span>
@@ -311,9 +412,18 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
             conversationId={conversationId}
             currentAssignee={conversation?.assignedUserId || undefined}
           />
+          <ProductSelectionModal
+            isOpen={showProductModal}
+            onClose={() => setShowProductModal(false)}
+            onAddProduct={handleAddProduct}
+          />
           <FinalizeOrderModal
             isOpen={showFinalizeModal}
-            onClose={() => setShowFinalizeModal(false)}
+            onClose={() => {
+              setShowFinalizeModal(false);
+              // Clear selected products after successful order
+              setSelectedProducts([]);
+            }}
             conversationId={conversationId}
             customerName={conversation?.customerName || 'Cliente'}
             items={getOrderItems()}
