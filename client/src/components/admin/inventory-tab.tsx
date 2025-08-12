@@ -6,12 +6,13 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Product } from "@shared/schema";
-import { Upload, Search, Package, AlertTriangle, TrendingUp } from "lucide-react";
+import { Upload, Search, Package, AlertTriangle, TrendingUp, Copy, Check, Trash2, Edit } from "lucide-react";
 
 export function InventoryTab() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ['/api/products'],
@@ -59,13 +60,53 @@ export function InventoryTab() {
     }
   };
 
-  const lowStockProducts = products.filter(p => p.stock < 5);
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedCode(text);
+      toast({
+        title: "Código copiado!",
+        description: `Código ${text} copiado para área de transferência`,
+        duration: 2000
+      });
+      setTimeout(() => setCopiedCode(null), 2000);
+    } catch (err) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o código",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteProductMutation = useMutation({
+    mutationFn: async (productId: number) => {
+      const response = await fetch(`/api/products/${productId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error('Delete failed');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      toast({
+        title: "Produto removido",
+        description: "Produto removido com sucesso",
+      });
+    },
+  });
+
+  const lowStockProducts = products.filter(p => (p.stock || 0) < 5);
   
-  // Filtrar produtos baseado na busca
+  // Filtrar produtos baseado na busca (incluindo código)
   const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category?.toLowerCase().includes(searchTerm.toLowerCase())
+    (product.codigo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (product.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (product.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (product.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (product.brand || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (isLoading) {
@@ -146,7 +187,7 @@ export function InventoryTab() {
             <div className="ml-3">
               <p className="text-sm text-gray-500">Valor Total</p>
               <p className="text-xl font-bold text-gray-900">
-                R$ {products.reduce((sum, p) => sum + (Number(p.price) * Number(p.stock)), 0).toLocaleString('pt-BR')}
+                R$ {products.reduce((sum, p) => sum + (Number(p.price || 0) * Number(p.stock || 0)), 0).toLocaleString('pt-BR')}
               </p>
             </div>
           </div>
@@ -175,6 +216,9 @@ export function InventoryTab() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Código
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Produto
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -189,11 +233,34 @@ export function InventoryTab() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Ações
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredProducts.map((product, index) => (
                 <tr key={product.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+                        {product.codigo}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(product.codigo || '')}
+                        className="h-6 w-6 p-0 hover:bg-green-100"
+                        title="Copiar código"
+                      >
+                        {copiedCode === product.codigo ? (
+                          <Check className="w-3 h-3 text-green-600" />
+                        ) : (
+                          <Copy className="w-3 h-3 text-gray-500" />
+                        )}
+                      </Button>
+                    </div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">{product.name}</div>
@@ -207,18 +274,32 @@ export function InventoryTab() {
                     R$ {Number(product.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {product.stock} unidades
+                    {product.stock || 0} unidades
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      product.stock < 5 
+                      (product.stock || 0) < 5 
                         ? 'bg-red-100 text-red-800'
-                        : product.stock < 20
+                        : (product.stock || 0) < 20
                         ? 'bg-yellow-100 text-yellow-800'
                         : 'bg-green-100 text-green-800'
                     }`}>
-                      {product.stock < 5 ? 'Estoque Baixo' : product.stock < 20 ? 'Atenção' : 'OK'}
+                      {(product.stock || 0) < 5 ? 'Estoque Baixo' : (product.stock || 0) < 20 ? 'Atenção' : 'OK'}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm">
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => deleteProductMutation.mutate(product.id)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

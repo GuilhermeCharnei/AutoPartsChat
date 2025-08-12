@@ -383,7 +383,7 @@ export function InventoryMobile() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => copyToClipboard(product.codigo)}
+                          onClick={() => copyToClipboard(product.codigo || '')}
                           className="h-6 w-6 p-0 hover:bg-green-100"
                           title="Copiar código"
                         >
@@ -503,7 +503,7 @@ export function InventoryMobile() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => copyToClipboard(product.codigo)}
+                                  onClick={() => copyToClipboard(product.codigo || '')}
                                   className="h-6 w-6 p-0 hover:bg-green-100"
                                   title="Copiar código"
                                 >
