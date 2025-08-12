@@ -209,10 +209,39 @@ export const whatsappConfig = pgTable("whatsapp_config", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Sales table
+export const sales = pgTable("sales", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").references(() => conversations.id),
+  customerName: varchar("customer_name", { length: 255 }).notNull(),
+  customerPhone: varchar("customer_phone", { length: 20 }),
+  items: jsonb("items").notNull(), // Array of sale items
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  paymentMethod: varchar("payment_method").notNull(), // pix, cartao_credito, etc.
+  status: varchar("status").default("pending"), // pending, confirmed, cancelled
+  sellerId: varchar("seller_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Bot settings table
+export const botSettings = pgTable("bot_settings", {
+  id: serial("id").primaryKey(),
+  welcomeMessage: text("welcome_message").default("Olá! Bem-vindo à nossa loja de autopeças! Como posso ajudá-lo hoje?"),
+  paymentMethods: jsonb("payment_methods"), // Array of accepted payment methods
+  businessHours: jsonb("business_hours"), // Business hours configuration
+  companyInfo: jsonb("company_info"), // Company information
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Additional insert schemas
 export const insertOpenAIConfigSchema = createInsertSchema(openaiConfig).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertSystemConversationSchema = createInsertSchema(systemConversations).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertWhatsAppConfigSchema = createInsertSchema(whatsappConfig).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertSalesSchema = createInsertSchema(sales).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertBotSettingsSchema = createInsertSchema(botSettings).omit({ id: true, createdAt: true, updatedAt: true });
 
 // Types
 export type UpsertUser = typeof users.$inferInsert;
@@ -231,3 +260,7 @@ export type SystemConversation = typeof systemConversations.$inferSelect;
 export type InsertSystemConversation = z.infer<typeof insertSystemConversationSchema>;
 export type WhatsAppConfig = typeof whatsappConfig.$inferSelect;
 export type InsertWhatsAppConfig = z.infer<typeof insertWhatsAppConfigSchema>;
+export type Sale = typeof sales.$inferSelect;
+export type InsertSale = z.infer<typeof insertSalesSchema>;
+export type BotSettings = typeof botSettings.$inferSelect;
+export type InsertBotSettings = z.infer<typeof insertBotSettingsSchema>;

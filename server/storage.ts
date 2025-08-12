@@ -4,6 +4,8 @@ import {
   conversations,
   messages,
   orders,
+  sales,
+  botSettings,
   type User,
   type UpsertUser,
   type Product,
@@ -14,6 +16,10 @@ import {
   type InsertMessage,
   type Order,
   type InsertOrder,
+  type Sale,
+  type InsertSale,
+  type BotSettings,
+  type InsertBotSettings,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, ilike, sql } from "drizzle-orm";
@@ -73,6 +79,19 @@ export interface IStorage {
   deleteUser(userId: string): Promise<boolean>;
   updateUser(id: string, data: any): Promise<User>;
   getUserByInviteToken(token: string): Promise<User | undefined>;
+  
+  // Sales operations
+  getAllSales(): Promise<Sale[]>;
+  getSale(id: number): Promise<Sale | undefined>;
+  createSale(sale: InsertSale): Promise<Sale>;
+  updateSaleStatus(id: number, status: string): Promise<Sale | undefined>;
+  
+  // Bot operations
+  getBotSettings(): Promise<BotSettings | undefined>;
+  updateBotSettings(settings: Partial<InsertBotSettings>): Promise<BotSettings>;
+  
+  // Product stock management
+  updateProductStock(productId: number, quantityChange: number): Promise<Product | undefined>;
   
   // OpenAI Config operations
   getOpenAIConfig(): Promise<any>;
@@ -529,6 +548,79 @@ export class DatabaseStorage implements IStorage {
       activeConversations: activeConversationsResult.count || 0,
       totalSales: totalSalesResult.total || 0,
     };
+  }
+
+  // Sales operations
+  async getAllSales(): Promise<Sale[]> {
+    return await db.select().from(sales).orderBy(desc(sales.createdAt));
+  }
+
+  async getSale(id: number): Promise<Sale | undefined> {
+    const [sale] = await db.select().from(sales).where(eq(sales.id, id));
+    return sale || undefined;
+  }
+
+  async createSale(sale: InsertSale): Promise<Sale> {
+    const [newSale] = await db.insert(sales).values(sale).returning();
+    return newSale;
+  }
+
+  async updateSaleStatus(id: number, status: string): Promise<Sale | undefined> {
+    const [updatedSale] = await db
+      .update(sales)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(sales.id, id))
+      .returning();
+    return updatedSale || undefined;
+  }
+
+  // Bot operations
+  async getBotSettings(): Promise<BotSettings | undefined> {
+    const [settings] = await db.select().from(botSettings).orderBy(desc(botSettings.createdAt));
+    return settings || undefined;
+  }
+
+  async updateBotSettings(settingsData: Partial<InsertBotSettings>): Promise<BotSettings> {
+    // Check if settings exist
+    const existing = await this.getBotSettings();
+    
+    if (existing) {
+      // Update existing settings
+      const [updated] = await db
+        .update(botSettings)
+        .set({ ...settingsData, updatedAt: new Date() })
+        .where(eq(botSettings.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      // Create new settings
+      const [created] = await db.insert(botSettings).values(settingsData as InsertBotSettings).returning();
+      return created;
+    }
+  }
+
+  // Product stock management
+  async updateProductStock(productId: number, quantityChange: number): Promise<Product | undefined> {
+    // Get current product
+    const product = await this.getProduct(productId);
+    if (!product) return undefined;
+
+    const currentStock = product.stock || product.estoque_atual || 0;
+    const newStock = currentStock + quantityChange;
+
+    // Update both stock fields for compatibility
+    const [updatedProduct] = await db
+      .update(products)
+      .set({ 
+        stock: newStock,
+        estoque_atual: newStock,
+        data_atualizacao: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(products.id, productId))
+      .returning();
+    
+    return updatedProduct || undefined;
   }
 }
 

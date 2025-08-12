@@ -21,6 +21,8 @@ import { ProfileSettingsTab } from "./profile-settings-tab";
 import { WhatsAppSetupTab } from "./whatsapp-setup-tab";
 import { PermissionsTab } from "./permissions-tab";
 import { OpenAIConfigTab } from "./openai-config-tab";
+import { SalesTab } from "./sales-tab";
+import { BotTab } from "./bot-tab";
 import { AdminPanelMobile } from "./admin-panel-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -41,7 +43,7 @@ export function AdminPanel() {
     return 'profile';
   };
   
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'conversations' | 'users' | 'inventory' | 'reports' | 'profile' | 'whatsapp' | 'openai' | 'permissions'>(getInitialTab());
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'conversations' | 'sales' | 'bot' | 'users' | 'inventory' | 'reports' | 'profile' | 'whatsapp' | 'openai' | 'permissions'>(getInitialTab());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const { data: conversations = [] } = useQuery({
@@ -64,6 +66,20 @@ export function AdminPanel() {
       label: 'Conversas Ativas',
       icon: MessageCircle,
       badge: activeConversations > 0 ? activeConversations : null,
+      show: canAccess.canViewDashboard
+    },
+    {
+      id: 'sales',
+      label: 'Vendas',
+      icon: BarChart3,
+      badge: null,
+      show: canAccess.canViewDashboard
+    },
+    {
+      id: 'bot',
+      label: 'Bot',
+      icon: Sparkles,
+      badge: null,
       show: canAccess.canViewDashboard
     },
     {
@@ -123,6 +139,8 @@ export function AdminPanel() {
     switch (activeTab) {
       case 'dashboard': return 'Dashboard';
       case 'conversations': return 'Conversas Ativas';
+      case 'sales': return 'Vendas e Faturamento';
+      case 'bot': return 'Configuração do Bot';
       case 'users': return 'Gerenciar Usuários';
       case 'inventory': return 'Gerenciar Inventário';
       case 'reports': return 'Relatórios e Analytics';
@@ -218,6 +236,8 @@ export function AdminPanel() {
           <div className="p-6">
             {activeTab === 'dashboard' && <DashboardTab />}
             {activeTab === 'conversations' && <ActiveConversationsTab />}
+            {activeTab === 'sales' && <SalesTab />}
+            {activeTab === 'bot' && <BotTab />}
             {activeTab === 'users' && <UsersTab />}
             {activeTab === 'inventory' && <InventoryTab />}
             {activeTab === 'reports' && <ReportsTab />}

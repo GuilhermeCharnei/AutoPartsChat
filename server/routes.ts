@@ -1145,5 +1145,230 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
 
+  // Sales routes
+  app.get('/api/sales', isAuthenticated, async (req, res) => {
+    try {
+      const salesData = await storage.getAllSales();
+      res.json(salesData);
+    } catch (error) {
+      console.error("Error fetching sales:", error);
+      res.status(500).json({ message: "Failed to fetch sales" });
+    }
+  });
+
+  app.post('/api/sales', isAuthenticated, async (req, res) => {
+    try {
+      const sale = await storage.createSale(req.body);
+      
+      // Update stock for each item
+      for (const item of req.body.items) {
+        await storage.updateProductStock(item.productId, -item.quantity);
+      }
+      
+      res.status(201).json(sale);
+    } catch (error) {
+      console.error("Error creating sale:", error);
+      res.status(500).json({ message: "Failed to create sale" });
+    }
+  });
+
+  // Bot routes
+  app.get('/api/bot/inventory', async (req, res) => {
+    try {
+      const products = await storage.getAllProducts();
+      const availableProducts = products.filter(p => (p.stock || p.estoque_atual || 0) > 0 && (p.isActive !== false && p.ativo !== false));
+      
+      // Format products for bot with essential info
+      const botInventory = availableProducts.map(product => ({
+        id: product.id,
+        codigo: product.codigo,
+        name: product.name || product.descricao,
+        description: product.description || product.descricao,
+        category: product.category || product.categoria,
+        brand: product.brand || product.marca,
+        price: product.price || product.preco_venda,
+        stock: product.stock || product.estoque_atual,
+        vehicleApplication: product.aplicacao
+      }));
+      
+      res.json(botInventory);
+    } catch (error) {
+      console.error("Error fetching bot inventory:", error);
+      res.status(500).json({ message: "Failed to fetch inventory for bot" });
+    }
+  });
+
+  app.get('/api/bot/settings', async (req, res) => {
+    try {
+      const settings = await storage.getBotSettings();
+      res.json(settings || {
+        welcomeMessage: "Olá! Bem-vindo à nossa loja de autopeças! Como posso ajudá-lo hoje?",
+        paymentMethods: ["PIX", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência"],
+        businessHours: {
+          monday: { open: "08:00", close: "18:00" },
+          tuesday: { open: "08:00", close: "18:00" },
+          wednesday: { open: "08:00", close: "18:00" },
+          thursday: { open: "08:00", close: "18:00" },
+          friday: { open: "08:00", close: "18:00" },
+          saturday: { open: "08:00", close: "16:00" },
+          sunday: { open: "closed", close: "closed" }
+        },
+        companyInfo: {
+          name: "AutoPeças Brasil",
+          address: "Rua das Peças, 123 - Centro",
+          phone: "(11) 99999-9999",
+          email: "contato@autopecasbrasil.com"
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching bot settings:", error);
+      res.status(500).json({ message: "Failed to fetch bot settings" });
+    }
+  });
+
+  // Bot chat endpoint for processing customer messages
+  app.post('/api/bot/chat', async (req, res) => {
+    try {
+      const { message, conversationId } = req.body;
+      
+      // Get inventory for context
+      const inventory = await storage.getAllProducts();
+      const availableProducts = inventory.filter(p => (p.stock || p.estoque_atual || 0) > 0 && (p.isActive !== false && p.ativo !== false));
+      
+      // Get bot settings
+      const botSettings = await storage.getBotSettings();
+      
+      // Process customer message with bot logic
+      let botResponse = processCustomerMessage(message, availableProducts, botSettings);
+      
+      res.json(botResponse);
+    } catch (error) {
+      console.error("Error processing bot chat:", error);
+      res.status(500).json({ message: "Failed to process message" });
+    }
+  });
+
   return httpServer;
+}
+
+// Simple bot message processing function
+function processCustomerMessage(message: string, inventory: any[], botSettings: any) {
+  const lowercaseMessage = message.toLowerCase();
+  
+  // Greeting responses
+  if (lowercaseMessage.includes('ola') || lowercaseMessage.includes('oi') || lowercaseMessage.includes('bom dia')) {
+    return {
+      message: botSettings?.welcomeMessage || "Olá! Bem-vindo à nossa loja de autopeças! Como posso ajudá-lo hoje?",
+      type: 'text'
+    };
+  }
+  
+  // Product search by code
+  const codeMatch = message.match(/código\s*([a-zA-Z0-9]+)|cod\s*([a-zA-Z0-9]+)|ref\s*([a-zA-Z0-9]+)/i);
+  if (codeMatch) {
+    const searchCode = codeMatch[1] || codeMatch[2] || codeMatch[3];
+    const product = inventory.find(p => p.codigo && p.codigo.toLowerCase().includes(searchCode.toLowerCase()));
+    
+    if (product) {
+      return {
+        message: `✅ *Produto encontrado!*\n\n` +
+                `📦 *${product.name}*\n` +
+                `🏷️ Código: *${product.codigo}*\n` +
+                `💰 Preço: *R$ ${Number(product.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*\n` +
+                `📊 Estoque: *${product.stock} unidades*\n\n` +
+                `Para finalizar a compra, me informe a quantidade desejada!`,
+        type: 'product_found',
+        metadata: { product }
+      };
+    } else {
+      return {
+        message: `❌ Não encontrei nenhum produto com o código "${searchCode}".\n\n` +
+                `Você pode:\n` +
+                `• Verificar se digitou o código corretamente\n` +
+                `• Me dizer que tipo de peça você precisa\n` +
+                `• Informar o modelo e ano do seu veículo`,
+        type: 'product_not_found'
+      };
+    }
+  }
+  
+  // Product search by category/name
+  const searchTerms = ['filtro', 'oleo', 'óleo', 'pneu', 'bateria', 'vela', 'freio', 'embreagem', 'amortecedor', 'pastilha', 'disco'];
+  const foundTerms = searchTerms.filter(term => lowercaseMessage.includes(term));
+  
+  if (foundTerms.length > 0) {
+    const searchTerm = foundTerms[0];
+    const matchingProducts = inventory.filter(p => 
+      (p.name && p.name.toLowerCase().includes(searchTerm)) ||
+      (p.descricao && p.descricao.toLowerCase().includes(searchTerm)) ||
+      (p.categoria && p.categoria.toLowerCase().includes(searchTerm))
+    ).slice(0, 3); // Limit to 3 products
+    
+    if (matchingProducts.length > 0) {
+      let responseMessage = `🔍 Encontrei *${matchingProducts.length} produto(s)* relacionado(s) a "${searchTerm}":\n\n`;
+      
+      matchingProducts.forEach((product, index) => {
+        responseMessage += `*${index + 1}. ${product.name || product.descricao}*\n`;
+        responseMessage += `🏷️ Código: ${product.codigo}\n`;
+        responseMessage += `💰 Preço: R$ ${Number(product.price || product.preco_venda || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`;
+        responseMessage += `📊 Estoque: ${product.stock || product.estoque_atual} unidades\n\n`;
+      });
+      
+      responseMessage += "💬 Para finalizar a compra, me informe o código e a quantidade desejada!";
+      
+      return {
+        message: responseMessage,
+        type: 'product_list',
+        metadata: { products: matchingProducts }
+      };
+    }
+  }
+  
+  // Purchase/order processing
+  if (lowercaseMessage.includes('quero') || lowercaseMessage.includes('compra') || lowercaseMessage.includes('pedido')) {
+    return {
+      message: "🛒 *Para processar seu pedido*, preciso que me informe:\n\n" +
+               "1️⃣ Código do produto\n" +
+               "2️⃣ Quantidade desejada\n\n" +
+               "📝 Exemplo: 'Quero 2 unidades do código ABC123'\n\n" +
+               "🔍 Também posso consultar nosso estoque se você me disser que tipo de peça está procurando!",
+      type: 'instruction'
+    };
+  }
+  
+  // Payment methods inquiry
+  if (lowercaseMessage.includes('pagamento') || lowercaseMessage.includes('forma') || lowercaseMessage.includes('pagar')) {
+    const paymentMethods = botSettings?.paymentMethods || ['PIX', 'Cartão de Crédito', 'Cartão de Débito', 'Dinheiro', 'Transferência'];
+    return {
+      message: `💳 *Formas de Pagamento Aceitas:*\n\n` +
+               paymentMethods.map(method => `• ${method}`).join('\n') +
+               `\n\n🚀 *PIX* é nossa forma mais rápida com desconto especial!`,
+      type: 'payment_info'
+    };
+  }
+  
+  // Business hours
+  if (lowercaseMessage.includes('horario') || lowercaseMessage.includes('funciona') || lowercaseMessage.includes('aberto')) {
+    return {
+      message: "🕐 *Horário de Funcionamento:*\n\n" +
+               "Segunda a Sexta: 08:00 às 18:00\n" +
+               "Sábado: 08:00 às 16:00\n" +
+               "Domingo: Fechado\n\n" +
+               "😊 Estamos sempre prontos para atendê-lo!",
+      type: 'business_info'
+    };
+  }
+  
+  // Default response
+  return {
+    message: "🤔 Desculpe, não entendi sua mensagem.\n\n" +
+             "*Posso ajudá-lo com:*\n\n" +
+             "🔍 Consulta de produtos em estoque\n" +
+             "💰 Informações sobre preços\n" +
+             "🛒 Processamento de pedidos\n" +
+             "💳 Formas de pagamento\n" +
+             "🕐 Horário de funcionamento\n\n" +
+             "❓ O que você gostaria de saber?",
+    type: 'help'
+  };
 }
