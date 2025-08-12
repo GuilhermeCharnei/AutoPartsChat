@@ -19,7 +19,9 @@ import {
   Eye,
   EyeOff,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Copy,
+  Check
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +51,7 @@ interface ColumnConfig {
 }
 
 const defaultColumns: ColumnConfig[] = [
+  { key: 'codigo', label: 'Código', visible: true, mobileVisible: true },
   { key: 'name', label: 'Produto', visible: true, mobileVisible: true },
   { key: 'category', label: 'Categoria', visible: true, mobileVisible: false },
   { key: 'brand', label: 'Marca', visible: true, mobileVisible: false },
@@ -67,6 +70,7 @@ export function InventoryMobile() {
   const [sortBy, setSortBy] = useState<keyof Product>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [expandedCard, setExpandedCard] = useState<number | null>(null);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ['/api/products'],
@@ -126,6 +130,25 @@ export function InventoryMobile() {
     },
   });
 
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedCode(text);
+      toast({
+        title: "Código copiado!",
+        description: `Código ${text} copiado para área de transferência`,
+        duration: 2000
+      });
+      setTimeout(() => setCopiedCode(null), 2000);
+    } catch (err) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o código",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -146,6 +169,7 @@ export function InventoryMobile() {
   );
 
   const filteredProducts = products.filter(product =>
+    (product.codigo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (product.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (product.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (product.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -351,9 +375,29 @@ export function InventoryMobile() {
               <Card key={product.id} className="overflow-hidden">
                 <CardContent className="p-3 md:p-4">
                   <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-medium text-sm md:text-base text-gray-900 line-clamp-2">
-                      {product.name}
-                    </h4>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-600">
+                          {product.codigo}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(product.codigo)}
+                          className="h-6 w-6 p-0 hover:bg-green-100"
+                          title="Copiar código"
+                        >
+                          {copiedCode === product.codigo ? (
+                            <Check className="w-3 h-3 text-green-600" />
+                          ) : (
+                            <Copy className="w-3 h-3 text-gray-500" />
+                          )}
+                        </Button>
+                      </div>
+                      <h4 className="font-medium text-sm md:text-base text-gray-900 line-clamp-2">
+                        {product.name}
+                      </h4>
+                    </div>
                     <div className="flex gap-1 ml-2">
                       <Button
                         variant="ghost"
@@ -451,6 +495,26 @@ export function InventoryMobile() {
                       <tr key={product.id} className="hover:bg-gray-50">
                         {visibleColumns.map((column) => (
                           <td key={column.key} className="px-4 py-4 whitespace-nowrap text-sm">
+                            {column.key === 'codigo' && (
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+                                  {product.codigo}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => copyToClipboard(product.codigo)}
+                                  className="h-6 w-6 p-0 hover:bg-green-100"
+                                  title="Copiar código"
+                                >
+                                  {copiedCode === product.codigo ? (
+                                    <Check className="w-3 h-3 text-green-600" />
+                                  ) : (
+                                    <Copy className="w-3 h-3 text-gray-500" />
+                                  )}
+                                </Button>
+                              </div>
+                            )}
                             {column.key === 'name' && (
                               <div>
                                 <div className="font-medium text-gray-900">{product.name}</div>
