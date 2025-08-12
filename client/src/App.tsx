@@ -13,11 +13,23 @@ import { InvitePage } from "@/pages/invite-page";
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-whatsapp-bg">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-whatsapp mx-auto mb-4"></div>
+          <p className="text-text-secondary">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Switch>
       <Route path="/temp-login" component={TempLogin} />
       <Route path="/invite/:token" component={InvitePage} />
-      {isLoading || !isAuthenticated ? (
+      {!isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (
         <>

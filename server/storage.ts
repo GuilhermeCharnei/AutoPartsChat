@@ -110,7 +110,7 @@ export class DatabaseStorage implements IStorage {
     const existingUser = await this.getUserByEmail(userData.email);
     
     if (existingUser) {
-      // Update existing user with new data
+      // Update existing user with new data, ensuring permissions are updated
       const [user] = await db
         .update(users)
         .set({

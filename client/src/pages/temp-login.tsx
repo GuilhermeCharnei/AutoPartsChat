@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, Lock, Building } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/queryClient';
 
 // Test users for each role
 const testUsers = {
@@ -54,11 +55,18 @@ export default function TempLogin() {
       });
 
       if (response.ok) {
+        // Invalidate auth cache to trigger re-fetch
+        await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        
         toast({
           title: "Login realizado com sucesso!",
           description: `Bem-vindo, ${user.name}`,
         });
-        setLocation('/');
+        
+        // Force a small delay to ensure the query has time to update
+        setTimeout(() => {
+          setLocation('/');
+        }, 100);
       } else {
         throw new Error('Falha no login');
       }
