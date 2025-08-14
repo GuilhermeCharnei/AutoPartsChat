@@ -183,28 +183,33 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
     });
   };
 
-  const handleAddProduct = (product: any) => {
+  const handleAddProducts = (products: any[]) => {
     setSelectedProducts(prev => {
-      const existingIndex = prev.findIndex(p => p.id === product.id);
-      if (existingIndex >= 0) {
-        // Update quantity if product already exists
-        const updated = [...prev];
-        updated[existingIndex].quantity += product.quantity;
-        toast({
-          title: "Quantidade Atualizada!",
-          description: `${product.name} - Nova quantidade: ${updated[existingIndex].quantity}`,
-        });
-        return updated;
-      } else {
-        // Add new product
-        return [...prev, {
-          id: product.id,
-          codigo: product.codigo,
-          name: product.name,
-          price: product.price,
-          quantity: product.quantity
-        }];
-      }
+      const newProducts = [...prev];
+      
+      products.forEach(product => {
+        const existingIndex = newProducts.findIndex(p => p.id === product.id);
+        if (existingIndex >= 0) {
+          // Update quantity if product already exists
+          newProducts[existingIndex].quantity += product.quantity;
+        } else {
+          // Add new product
+          newProducts.push({
+            id: product.id,
+            codigo: product.codigo,
+            name: product.name,
+            price: product.price,
+            quantity: product.quantity
+          });
+        }
+      });
+      
+      toast({
+        title: "Produtos Adicionados!",
+        description: `${products.length} produto(s) adicionado(s) ao pedido`,
+      });
+      
+      return newProducts;
     });
   };
 
@@ -408,7 +413,7 @@ export function ChatConversation({ conversationId }: ChatConversationProps) {
           <ProductSelectionModal
             isOpen={showProductModal}
             onClose={() => setShowProductModal(false)}
-            onAddProduct={handleAddProduct}
+            onAddProducts={handleAddProducts}
           />
           <FinalizeOrderModal
             isOpen={showFinalizeModal}
