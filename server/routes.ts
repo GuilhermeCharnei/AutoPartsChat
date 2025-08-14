@@ -1027,6 +1027,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       const validatedData = insertOrderSchema.parse(orderData);
       const order = await storage.createOrder(validatedData);
+      
+      // Also create a corresponding sale record
+      const saleData = {
+        conversationId: order.conversationId,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        items: order.items as any,
+        totalAmount: order.totalAmount,
+        paymentMethod: req.body.paymentMethod || 'pix',
+        status: order.status,
+        sellerId: order.sellerId,
+      };
+      await storage.createSale(saleData);
+      
       res.json(order);
     } catch (error) {
       console.error("Error creating order:", error);
