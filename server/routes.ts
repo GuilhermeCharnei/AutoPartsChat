@@ -1470,8 +1470,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Team Chat endpoints
   app.get('/api/team-chat/messages', isAuthenticated, async (req: any, res) => {
     try {
-      const { chatRoom = 'general', limit = 50 } = req.query;
-      const messages = await storage.getTeamChatMessages(chatRoom, parseInt(limit));
+      const { chatRoom, receiverId, limit = 50 } = req.query;
+      const userId = req.session.user.id;
+      
+      let messages;
+      if (receiverId) {
+        // Get direct messages between current user and specified user
+        messages = await storage.getDirectMessages(userId, receiverId, parseInt(limit));
+      } else {
+        // Get room messages
+        const room = chatRoom || 'general';
+        messages = await storage.getTeamChatMessages(room, parseInt(limit));
+      }
+      
       res.json(messages);
     } catch (error) {
       console.error("Error fetching team chat messages:", error);
@@ -1493,7 +1504,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         receiverId: receiverId || null, // null = broadcast to all
         message: message.trim(),
         messageType,
-        chatRoom,
+        chatRoom: receiverId ? null : (chatRoom || 'general'), // null for DMs, room name for public messages
         metadata: metadata || {},
         isRead: false
       };

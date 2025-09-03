@@ -25,7 +25,7 @@ import {
   type InsertTeamChat,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or, ilike, sql } from "drizzle-orm";
+import { eq, desc, and, or, ilike, sql, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -106,6 +106,7 @@ export interface IStorage {
   
   // Team Chat operations
   getTeamChatMessages(chatRoom?: string, limit?: number): Promise<any[]>;
+  getDirectMessages(userId: string, otherUserId: string, limit?: number): Promise<any[]>;
   sendTeamChatMessage(message: any): Promise<any>;
   markTeamChatMessagesAsRead(userId: string, messageIds: number[]): Promise<void>;
   getActiveTeamMembers(): Promise<User[]>;
@@ -652,6 +653,39 @@ export class DatabaseStorage implements IStorage {
       .from(teamChat)
       .leftJoin(users, eq(teamChat.senderId, users.id))
       .where(eq(teamChat.chatRoom, chatRoom))
+      .orderBy(desc(teamChat.createdAt))
+      .limit(limit);
+    
+    return messages.reverse(); // Return in chronological order
+  }
+
+  async getDirectMessages(userId: string, otherUserId: string, limit: number = 50): Promise<any[]> {
+    const messages = await db
+      .select({
+        id: teamChat.id,
+        senderId: teamChat.senderId,
+        receiverId: teamChat.receiverId,
+        message: teamChat.message,
+        messageType: teamChat.messageType,
+        isRead: teamChat.isRead,
+        chatRoom: teamChat.chatRoom,
+        metadata: teamChat.metadata,
+        createdAt: teamChat.createdAt,
+        senderName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
+        senderEmail: users.email,
+        senderRole: users.role,
+      })
+      .from(teamChat)
+      .leftJoin(users, eq(teamChat.senderId, users.id))
+      .where(
+        and(
+          isNull(teamChat.chatRoom), // Direct messages have null chatRoom
+          or(
+            and(eq(teamChat.senderId, userId), eq(teamChat.receiverId, otherUserId)),
+            and(eq(teamChat.senderId, otherUserId), eq(teamChat.receiverId, userId))
+          )
+        )
+      )
       .orderBy(desc(teamChat.createdAt))
       .limit(limit);
     
