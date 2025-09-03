@@ -23,6 +23,7 @@ import { PermissionsTab } from "./permissions-tab";
 import { OpenAIConfigTab } from "./openai-config-tab";
 import { SalesTab } from "./sales-tab";
 import { BotTab } from "./bot-tab";
+import { TeamChatTab } from "./team-chat-tab";
 import { AdminPanelMobile } from "./admin-panel-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -44,7 +45,7 @@ export function AdminPanel() {
     return 'profile';
   };
   
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'conversations' | 'sales' | 'bot' | 'users' | 'inventory' | 'reports' | 'profile' | 'whatsapp' | 'openai' | 'permissions'>(getInitialTab());
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'conversations' | 'sales' | 'bot' | 'teamchat' | 'users' | 'inventory' | 'reports' | 'profile' | 'whatsapp' | 'openai' | 'permissions'>(getInitialTab());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const { data: conversations = [] } = useQuery({
@@ -68,6 +69,13 @@ export function AdminPanel() {
       icon: MessageCircle,
       badge: activeConversations > 0 ? activeConversations : null,
       show: canAccess.canViewConversations
+    },
+    {
+      id: 'teamchat',
+      label: 'Chat da Equipe',
+      icon: Users,
+      badge: null,
+      show: canAccess.canViewConversations // All users can access team chat
     },
     {
       id: 'sales',
@@ -234,9 +242,10 @@ export function AdminPanel() {
 
         {/* Content Area */}
         <div className="flex-1 min-h-0 overflow-y-auto">
-          <div className="p-6">
+          <div className={activeTab === 'teamchat' ? 'h-full' : 'p-6'}>
             {activeTab === 'dashboard' && <DashboardTab />}
             {activeTab === 'conversations' && <ActiveConversationsTab />}
+            {activeTab === 'teamchat' && <TeamChatTab />}
             {activeTab === 'sales' && <SalesTab />}
             {activeTab === 'bot' && <BotTab />}
             {activeTab === 'users' && <UsersTab />}

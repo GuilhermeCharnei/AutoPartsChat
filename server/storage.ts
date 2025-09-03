@@ -6,6 +6,7 @@ import {
   orders,
   sales,
   botSettings,
+  teamChat,
   type User,
   type UpsertUser,
   type Product,
@@ -20,6 +21,8 @@ import {
   type InsertSale,
   type BotSettings,
   type InsertBotSettings,
+  type TeamChat,
+  type InsertTeamChat,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, ilike, sql } from "drizzle-orm";
@@ -100,6 +103,12 @@ export interface IStorage {
   // System Conversations operations
   getSystemConversations(): Promise<any[]>;
   createSystemConversation(data: any): Promise<any>;
+  
+  // Team Chat operations
+  getTeamChatMessages(chatRoom?: string, limit?: number): Promise<any[]>;
+  sendTeamChatMessage(message: any): Promise<any>;
+  markTeamChatMessagesAsRead(userId: string, messageIds: number[]): Promise<void>;
+  getActiveTeamMembers(): Promise<User[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -621,6 +630,59 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return updatedProduct || undefined;
+  }
+
+  // Team Chat operations
+  async getTeamChatMessages(chatRoom: string = 'general', limit: number = 50): Promise<any[]> {
+    const messages = await db
+      .select({
+        id: teamChat.id,
+        senderId: teamChat.senderId,
+        receiverId: teamChat.receiverId,
+        message: teamChat.message,
+        messageType: teamChat.messageType,
+        isRead: teamChat.isRead,
+        chatRoom: teamChat.chatRoom,
+        metadata: teamChat.metadata,
+        createdAt: teamChat.createdAt,
+        senderName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
+        senderEmail: users.email,
+        senderRole: users.role,
+      })
+      .from(teamChat)
+      .leftJoin(users, eq(teamChat.senderId, users.id))
+      .where(eq(teamChat.chatRoom, chatRoom))
+      .orderBy(desc(teamChat.createdAt))
+      .limit(limit);
+    
+    return messages.reverse(); // Return in chronological order
+  }
+
+  async sendTeamChatMessage(messageData: InsertTeamChat): Promise<TeamChat> {
+    const [message] = await db.insert(teamChat).values(messageData).returning();
+    return message;
+  }
+
+  async markTeamChatMessagesAsRead(userId: string, messageIds: number[]): Promise<void> {
+    if (messageIds.length === 0) return;
+    
+    await db
+      .update(teamChat)
+      .set({ isRead: true })
+      .where(and(
+        eq(teamChat.receiverId, userId),
+        sql`${teamChat.id} = ANY(${messageIds})`
+      ));
+  }
+
+  async getActiveTeamMembers(): Promise<User[]> {
+    const activeUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.isActive, true))
+      .orderBy(users.firstName);
+    
+    return activeUsers;
   }
 }
 

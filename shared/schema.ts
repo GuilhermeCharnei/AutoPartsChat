@@ -236,12 +236,27 @@ export const botSettings = pgTable("bot_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Internal team chat table
+export const teamChat = pgTable("team_chat", {
+  id: serial("id").primaryKey(),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  receiverId: varchar("receiver_id").references(() => users.id), // null = broadcast to all
+  message: text("message").notNull(),
+  messageType: varchar("message_type").default("text"), // text, file, image
+  isRead: boolean("is_read").default(false),
+  chatRoom: varchar("chat_room").default("general"), // general, support, sales
+  metadata: jsonb("metadata"), // For file attachments, etc
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Additional insert schemas
 export const insertOpenAIConfigSchema = createInsertSchema(openaiConfig).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertSystemConversationSchema = createInsertSchema(systemConversations).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertWhatsAppConfigSchema = createInsertSchema(whatsappConfig).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertSalesSchema = createInsertSchema(sales).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertBotSettingsSchema = createInsertSchema(botSettings).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertTeamChatSchema = createInsertSchema(teamChat).omit({ id: true, createdAt: true, updatedAt: true });
 
 // Types
 export type UpsertUser = typeof users.$inferInsert;
@@ -264,3 +279,5 @@ export type Sale = typeof sales.$inferSelect;
 export type InsertSale = z.infer<typeof insertSalesSchema>;
 export type BotSettings = typeof botSettings.$inferSelect;
 export type InsertBotSettings = z.infer<typeof insertBotSettingsSchema>;
+export type TeamChat = typeof teamChat.$inferSelect;
+export type InsertTeamChat = z.infer<typeof insertTeamChatSchema>;

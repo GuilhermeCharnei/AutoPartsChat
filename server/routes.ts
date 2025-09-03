@@ -1467,6 +1467,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Team Chat endpoints
+  app.get('/api/team-chat/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const { chatRoom = 'general', limit = 50 } = req.query;
+      const messages = await storage.getTeamChatMessages(chatRoom, parseInt(limit));
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching team chat messages:", error);
+      res.status(500).json({ message: "Failed to fetch team chat messages" });
+    }
+  });
+
+  app.post('/api/team-chat/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.user.id;
+      const { message, receiverId, chatRoom = 'general', messageType = 'text', metadata } = req.body;
+
+      if (!message?.trim()) {
+        return res.status(400).json({ message: "Mensagem não pode estar vazia" });
+      }
+
+      const messageData = {
+        senderId: userId,
+        receiverId: receiverId || null, // null = broadcast to all
+        message: message.trim(),
+        messageType,
+        chatRoom,
+        metadata: metadata || {},
+        isRead: false
+      };
+
+      const createdMessage = await storage.sendTeamChatMessage(messageData);
+      res.status(201).json(createdMessage);
+    } catch (error) {
+      console.error("Error sending team chat message:", error);
+      res.status(500).json({ message: "Failed to send team chat message" });
+    }
+  });
+
+  app.patch('/api/team-chat/messages/read', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.user.id;
+      const { messageIds } = req.body;
+
+      if (!Array.isArray(messageIds)) {
+        return res.status(400).json({ message: "messageIds deve ser um array" });
+      }
+
+      await storage.markTeamChatMessagesAsRead(userId, messageIds);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
+      res.status(500).json({ message: "Failed to mark messages as read" });
+    }
+  });
+
+  app.get('/api/team-chat/members', isAuthenticated, async (req, res) => {
+    try {
+      const members = await storage.getActiveTeamMembers();
+      // Remove sensitive data like password hashes
+      const safeMembers = members.map(member => ({
+        id: member.id,
+        email: member.email,
+        firstName: member.firstName,
+        lastName: member.lastName,
+        profileImageUrl: member.profileImageUrl,
+        role: member.role,
+        isActive: member.isActive
+      }));
+      res.json(safeMembers);
+    } catch (error) {
+      console.error("Error fetching team members:", error);
+      res.status(500).json({ message: "Failed to fetch team members" });
+    }
+  });
+
   return httpServer;
 }
 
