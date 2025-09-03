@@ -37,9 +37,10 @@ export function AdminPanel() {
   
   // Set initial tab based on permissions
   const getInitialTab = () => {
-    // Always start with dashboard for better user experience
-    // Users can navigate to their profile when needed
+    // Start with dashboard for admin roles
     if (canAccess.canViewDashboard) return 'dashboard';
+    // Vendedores vão direto para conversas (sua função principal)
+    if (canAccess.canViewConversations) return 'conversations';
     return 'profile';
   };
   
@@ -66,7 +67,7 @@ export function AdminPanel() {
       label: 'Conversas Ativas',
       icon: MessageCircle,
       badge: activeConversations > 0 ? activeConversations : null,
-      show: canAccess.canViewDashboard
+      show: canAccess.canViewConversations
     },
     {
       id: 'sales',

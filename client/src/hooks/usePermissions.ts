@@ -28,6 +28,7 @@ export function usePermissions() {
     canEditUsers: role === 'dev' || role === 'administrador' || role === 'gerente',
     canViewDashboard: role !== 'vendedor',
     canManageInventory: role !== 'vendedor',
+    canViewConversations: true, // All roles can view conversations (main work function)
     
     // UI visibility
     showAdminPanel: role !== 'vendedor',
