@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,12 +38,20 @@ export default function LoginPage() {
       const response = await apiRequest('POST', '/api/auth/login', data);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Invalidate and refetch user data
+      await queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/auth/user'] });
+      
       toast({
         title: "Login realizado com sucesso!",
         description: "Bem-vindo de volta!",
       });
-      navigate("/");
+      
+      // Small delay to ensure query has updated
+      setTimeout(() => {
+        navigate("/");
+      }, 100);
     },
     onError: (error: any) => {
       toast({
