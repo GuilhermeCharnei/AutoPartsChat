@@ -51,7 +51,7 @@ export function BotTab() {
   });
 
   const updateBotMutation = useMutation({
-    mutationFn: (settings: Partial<BotSettings>) => apiRequest('/api/bot/settings', 'POST', settings),
+    mutationFn: (settings: Partial<BotSettings>) => apiRequest('POST', '/api/bot/settings', settings),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/bot/settings'] });
       toast({
@@ -70,7 +70,7 @@ export function BotTab() {
 
   const testBotMutation = useMutation({
     mutationFn: async (message: string) => {
-      const response = await apiRequest('/api/bot/chat', 'POST', { message });
+      const response = await apiRequest('POST', '/api/bot/chat', { message });
       return response.json();
     },
     onSuccess: (response: any) => {
