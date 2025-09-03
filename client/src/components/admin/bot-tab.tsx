@@ -69,7 +69,10 @@ export function BotTab() {
   });
 
   const testBotMutation = useMutation({
-    mutationFn: (message: string) => apiRequest('/api/bot/chat', 'POST', { message }),
+    mutationFn: async (message: string) => {
+      const response = await apiRequest('/api/bot/chat', 'POST', { message });
+      return response.json();
+    },
     onSuccess: (response: any) => {
       setTestResponse(response.message || 'Resposta do bot não disponível');
       setIsTestingBot(false);
