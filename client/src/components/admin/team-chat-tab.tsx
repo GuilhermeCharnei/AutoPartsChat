@@ -179,7 +179,7 @@ export function TeamChatTab() {
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm text-gray-900 truncate">
                       {member.firstName} {member.lastName}
-                      {member.id === user?.id && ' (Você)'}
+                      {user && member.id === user.id && ' (Você)'}
                     </div>
                     <Badge className={`text-xs ${getRoleColor(member.role)}`}>
                       {member.role}
@@ -221,7 +221,7 @@ export function TeamChatTab() {
             </div>
           ) : (
             messages.map((message, index) => {
-              const isCurrentUser = message.senderId === user?.id;
+              const isCurrentUser = user && message.senderId === user.id;
               const showDate = index === 0 || 
                 formatDate(messages[index - 1].createdAt) !== formatDate(message.createdAt);
               
