@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
-import TempLogin from "@/pages/temp-login";
+import LoginPage from "@/pages/login-page";
 import { InvitePage } from "@/pages/invite-page";
 
 function Router() {
@@ -27,10 +27,10 @@ function Router() {
 
   return (
     <Switch>
-      <Route path="/temp-login" component={TempLogin} />
+      <Route path="/login" component={LoginPage} />
       <Route path="/invite/:token" component={InvitePage} />
       {!isAuthenticated ? (
-        <Route path="/" component={Landing} />
+        <Route path="/" component={LoginPage} />
       ) : (
         <>
           <Route path="/" component={Home} />

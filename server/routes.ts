@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupLocalAuth, isAuthenticated, hashPassword, comparePasswords } from "./localAuth";
 import { insertProductSchema, insertConversationSchema, insertMessageSchema, insertOrderSchema } from "@shared/schema";
 import multer from "multer";
 import XLSX from "xlsx";
@@ -11,17 +11,222 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
-  await setupAuth(app);
+  setupLocalAuth(app);
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = (req.user as any)?.claims?.sub;
+      const userId = req.session.user.id;
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Login route
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email e senha são obrigatórios" });
+      }
+
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: "Email ou senha inválidos" });
+      }
+
+      // Check if user has a password hash
+      if (!user.passwordHash) {
+        return res.status(401).json({ message: "Usuário não pode fazer login (sem senha cadastrada)" });
+      }
+
+      // Verify password
+      const isPasswordValid = await comparePasswords(password, user.passwordHash);
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Email ou senha inválidos" });
+      }
+
+      // Check if user is active
+      if (!user.isActive) {
+        return res.status(401).json({ message: "Usuário desativado" });
+      }
+
+      // Create session
+      req.session.user = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        permissions: user.permissions,
+        profileImageUrl: user.profileImageUrl
+      };
+
+      res.json({ 
+        success: true, 
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          permissions: user.permissions,
+          profileImageUrl: user.profileImageUrl
+        }
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
+    }
+  });
+
+  // Initialize admin user (one-time setup)
+  app.post('/api/auth/init-admin', async (req, res) => {
+    try {
+      const { email, password, firstName, lastName } = req.body;
+
+      if (!email || !password || !firstName || !lastName) {
+        return res.status(400).json({ message: "Todos os campos são obrigatórios" });
+      }
+
+      // Check if any user already exists
+      const users = await storage.getAllUsers();
+      if (users && users.length > 0) {
+        return res.status(409).json({ message: "Sistema já foi inicializado" });
+      }
+
+      // Hash password
+      const passwordHash = await hashPassword(password);
+
+      // Create admin user with full permissions
+      const adminUser = await storage.upsertUser({
+        id: `admin_${Date.now()}`,
+        email,
+        firstName,
+        lastName,
+        role: 'dev',
+        isActive: true,
+        permissions: {
+          viewStock: true,
+          editProducts: true,
+          viewReports: true,
+          manageUsers: true,
+          adminAccess: true,
+          apiConfig: true,
+          canCreateDev: true
+        },
+        passwordHash,
+        isInvitePending: false
+      });
+
+      res.status(201).json({ 
+        success: true, 
+        message: "Usuário administrador criado com sucesso",
+        user: {
+          id: adminUser.id,
+          email: adminUser.email,
+          firstName: adminUser.firstName,
+          lastName: adminUser.lastName,
+          role: adminUser.role
+        }
+      });
+    } catch (error) {
+      console.error("Init admin error:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
+    }
+  });
+
+  // Register route (for creating new users with passwords)
+  app.post('/api/auth/register', async (req, res) => {
+    try {
+      const { email, password, firstName, lastName, role = 'vendedor' } = req.body;
+
+      if (!email || !password || !firstName || !lastName) {
+        return res.status(400).json({ message: "Todos os campos são obrigatórios" });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({ message: "Senha deve ter pelo menos 6 caracteres" });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({ message: "Usuário já existe com este email" });
+      }
+
+      // Hash password
+      const passwordHash = await hashPassword(password);
+
+      // Set default permissions based on role
+      let permissions = {};
+      switch (role) {
+        case 'gerente':
+          permissions = {
+            viewStock: true,
+            editProducts: true,
+            viewReports: true,
+            manageUsers: true,
+            adminAccess: false,
+            apiConfig: false
+          };
+          break;
+        case 'vendedor':
+          permissions = {
+            viewStock: true,
+            editProducts: false,
+            viewReports: false,
+            manageUsers: false,
+            adminAccess: false,
+            apiConfig: false,
+            editOwnProfile: true
+          };
+          break;
+      }
+
+      // Create user
+      const user = await storage.upsertUser({
+        id: `user_${Date.now()}`,
+        email,
+        firstName,
+        lastName,
+        role,
+        isActive: true,
+        permissions,
+        passwordHash,
+        isInvitePending: false
+      });
+
+      // Create session
+      req.session.user = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        permissions: user.permissions,
+        profileImageUrl: user.profileImageUrl
+      };
+
+      res.status(201).json({ 
+        success: true, 
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          permissions: user.permissions
+        }
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
     }
   });
 
