@@ -24,8 +24,8 @@ export function LogoutButton() {
           title: "Logout realizado",
           description: "Você foi desconectado com sucesso.",
         });
-        // Redirect to temp login
-        window.location.href = '/temp-login';
+        // Redirect to login page
+        window.location.href = '/login';
       } else {
         throw new Error('Falha no logout');
       }
