@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Send, Users, MessageCircle, Home, Check, CheckCheck } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Send, Users, MessageCircle, Home, Check, CheckCheck, Circle, UserCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -226,120 +227,212 @@ export function TeamChatTab() {
           </p>
         </div>
 
-        {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto">
-          {allConversations
-            .sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime())
-            .map((conversation) => (
-            <button
-              key={`${conversation.type}-${conversation.id}`}
-              onClick={() => setSelectedConversation(conversation)}
-              className={`w-full p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors text-left ${
-                selectedConversation?.id === conversation.id && selectedConversation?.type === conversation.type
-                  ? 'bg-green-50 border-l-4 border-l-green-500'
-                  : ''
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                {/* Avatar */}
-                {conversation.type === 'dm' ? (
-                  <Avatar className="w-12 h-12">
-                    <AvatarImage src={conversation.profileImageUrl || ''} />
-                    <AvatarFallback className="bg-gray-200">
-                      {conversation.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                ) : (
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-lg">
-                    {getConversationIcon(conversation)}
-                  </div>
-                )}
+        {/* Tabs for Conversations and Team Contacts */}
+        <Tabs defaultValue="conversations" className="flex-1 flex flex-col">
+          <TabsList className="grid w-full grid-cols-2 bg-gray-100 mx-4 mt-2">
+            <TabsTrigger value="conversations" className="text-xs">Conversas</TabsTrigger>
+            <TabsTrigger value="contacts" className="text-xs">Contatos</TabsTrigger>
+          </TabsList>
 
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-medium text-gray-900 truncate">
-                      {conversation.name}
-                      {conversation.role && (
-                        <Badge className={`ml-2 text-xs ${getRoleColor(conversation.role)}`}>
-                          {conversation.role}
-                        </Badge>
-                      )}
-                    </h3>
-                    <span className="text-xs text-gray-500">
-                      {formatTime(conversation.lastMessageTime)}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-gray-600 truncate">
-                      {conversation.senderName && (
-                        <span className="font-medium">{conversation.senderName}: </span>
-                      )}
-                      {conversation.lastMessage || 'Nenhuma mensagem ainda'}
-                    </p>
-                    
-                    {conversation.unreadCount > 0 && (
-                      <Badge className="bg-green-500 text-white text-xs min-w-[20px] h-5 rounded-full flex items-center justify-center">
-                        {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
-                      </Badge>
+          {/* Conversations Tab */}
+          <TabsContent value="conversations" className="flex-1 flex flex-col mt-0">
+            <div className="flex-1 overflow-y-auto">
+              {allConversations
+                .sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime())
+                .map((conversation) => (
+                <button
+                  key={`${conversation.type}-${conversation.id}`}
+                  onClick={() => setSelectedConversation(conversation)}
+                  className={`w-full p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors text-left ${
+                    selectedConversation?.id === conversation.id && selectedConversation?.type === conversation.type
+                      ? 'bg-green-50 border-l-4 border-l-green-500'
+                      : ''
+                  }`}
+                  data-testid={`conversation-${conversation.type}-${conversation.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Avatar */}
+                    {conversation.type === 'dm' ? (
+                      <Avatar className="w-12 h-12">
+                        <AvatarImage src={conversation.profileImageUrl || ''} />
+                        <AvatarFallback className="bg-gray-200">
+                          {conversation.name.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                    ) : (
+                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-lg">
+                        {getConversationIcon(conversation)}
+                      </div>
                     )}
-                  </div>
-                </div>
-              </div>
-            </button>
-          ))}
-          
-          {allConversations.length === 0 && (
-            <div className="p-8 text-center text-gray-500">
-              <MessageCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>Nenhuma conversa ainda</p>
-              <p className="text-sm mt-1">Envie uma mensagem para começar</p>
-            </div>
-          )}
-        </div>
 
-        {/* Quick Add Room/DM buttons */}
-        <div className="p-4 border-t border-gray-200 bg-gray-50">
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const generalRoom = allConversations.find(c => c.id === 'general' && c.type === 'room');
-                if (generalRoom) setSelectedConversation(generalRoom);
-              }}
-              className="text-xs"
-            >
-              🏠 Geral
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                // Find first available team member for DM
-                const availableMember = teamMembers.find(m => m.id !== user?.id && m.isActive);
-                if (availableMember) {
-                  const dmConversation: Conversation = {
-                    id: availableMember.id,
-                    type: 'dm',
-                    name: `${availableMember.firstName} ${availableMember.lastName}`,
-                    lastMessage: '',
-                    lastMessageTime: new Date().toISOString(),
-                    unreadCount: 0,
-                    senderName: '',
-                    profileImageUrl: availableMember.profileImageUrl,
-                    role: availableMember.role
-                  };
-                  setSelectedConversation(dmConversation);
-                }
-              }}
-              className="text-xs"
-            >
-              💬 Nova DM
-            </Button>
-          </div>
-        </div>
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-medium text-gray-900 truncate">
+                          {conversation.name}
+                          {conversation.role && (
+                            <Badge className={`ml-2 text-xs ${getRoleColor(conversation.role)}`}>
+                              {conversation.role}
+                            </Badge>
+                          )}
+                        </h3>
+                        <span className="text-xs text-gray-500">
+                          {formatTime(conversation.lastMessageTime)}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-gray-600 truncate">
+                          {conversation.senderName && (
+                            <span className="font-medium">{conversation.senderName}: </span>
+                          )}
+                          {conversation.lastMessage || 'Nenhuma mensagem ainda'}
+                        </p>
+                        
+                        {conversation.unreadCount > 0 && (
+                          <Badge className="bg-green-500 text-white text-xs min-w-[20px] h-5 rounded-full flex items-center justify-center">
+                            {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+              
+              {allConversations.length === 0 && (
+                <div className="p-8 text-center text-gray-500">
+                  <MessageCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p>Nenhuma conversa ainda</p>
+                  <p className="text-sm mt-1">Envie uma mensagem para começar</p>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Add Room buttons */}
+            <div className="p-4 border-t border-gray-200 bg-gray-50">
+              <div className="grid grid-cols-3 gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const generalRoom = allConversations.find(c => c.id === 'general' && c.type === 'room');
+                    if (generalRoom) setSelectedConversation(generalRoom);
+                  }}
+                  className="text-xs"
+                  data-testid="button-room-general"
+                >
+                  🏠 Geral
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const supportRoom = allConversations.find(c => c.id === 'support' && c.type === 'room');
+                    if (supportRoom) setSelectedConversation(supportRoom);
+                  }}
+                  className="text-xs"
+                  data-testid="button-room-support"
+                >
+                  🆘 Suporte
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const salesRoom = allConversations.find(c => c.id === 'sales' && c.type === 'room');
+                    if (salesRoom) setSelectedConversation(salesRoom);
+                  }}
+                  className="text-xs"
+                  data-testid="button-room-sales"
+                >
+                  💰 Vendas
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Team Contacts Tab */}
+          <TabsContent value="contacts" className="flex-1 flex flex-col mt-0">
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-3 bg-gray-50 border-b">
+                <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Equipe ({teamMembers.filter(m => m.id !== user?.id).length} membros)
+                </h3>
+              </div>
+
+              {teamMembers
+                .filter(member => member.id !== user?.id) // Don't show current user
+                .sort((a, b) => {
+                  // Sort by role priority, then by name
+                  const roleOrder = { 'administrador': 0, 'gerente': 1, 'vendedor': 2, 'dev': 3 };
+                  const aOrder = roleOrder[a.role as keyof typeof roleOrder] ?? 99;
+                  const bOrder = roleOrder[b.role as keyof typeof roleOrder] ?? 99;
+                  if (aOrder !== bOrder) return aOrder - bOrder;
+                  return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+                })
+                .map((member) => (
+                <button
+                  key={member.id}
+                  onClick={() => {
+                    const dmConversation: Conversation = {
+                      id: member.id,
+                      type: 'dm',
+                      name: `${member.firstName} ${member.lastName}`,
+                      lastMessage: '',
+                      lastMessageTime: new Date().toISOString(),
+                      unreadCount: 0,
+                      senderName: '',
+                      profileImageUrl: member.profileImageUrl,
+                      role: member.role
+                    };
+                    setSelectedConversation(dmConversation);
+                  }}
+                  className="w-full p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors text-left"
+                  data-testid={`contact-${member.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src={member.profileImageUrl || ''} />
+                        <AvatarFallback className="bg-gray-200">
+                          {`${member.firstName} ${member.lastName}`.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      {/* Online status indicator */}
+                      <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${
+                        member.isActive ? 'bg-green-500' : 'bg-gray-400'
+                      }`} />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-gray-900 truncate">
+                          {member.firstName} {member.lastName}
+                        </h4>
+                        <Badge className={`text-xs ${getRoleColor(member.role)}`}>
+                          {member.role}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 truncate">
+                        {member.email} • {member.isActive ? 'Online' : 'Offline'}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+
+              {teamMembers.filter(m => m.id !== user?.id).length === 0 && (
+                <div className="p-8 text-center text-gray-500">
+                  <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p>Nenhum membro da equipe</p>
+                  <p className="text-sm mt-1">Aguarde outros membros se conectarem</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Chat Area */}
