@@ -110,6 +110,8 @@ export interface IStorage {
   sendTeamChatMessage(message: any): Promise<any>;
   markTeamChatMessagesAsRead(userId: string, messageIds: number[]): Promise<void>;
   getActiveTeamMembers(): Promise<User[]>;
+  getTeamChatConversations(userId: string): Promise<any[]>;
+  markTeamConversationAsRead(userId: string, conversationId: string, type: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -717,6 +719,95 @@ export class DatabaseStorage implements IStorage {
       .orderBy(users.firstName);
     
     return activeUsers;
+  }
+
+  // Get team chat conversations (WhatsApp-style list) - Simplified version
+  async getTeamChatConversations(userId: string): Promise<any[]> {
+    // Get latest message for each room
+    const roomMessages = await db
+      .select()
+      .from(teamChat)
+      .leftJoin(users, eq(teamChat.senderId, users.id))
+      .where(sql`${teamChat.chatRoom} is not null`)
+      .orderBy(desc(teamChat.createdAt));
+
+    // Get latest message for each DM
+    const dmMessages = await db
+      .select()
+      .from(teamChat)
+      .leftJoin(users, eq(teamChat.senderId, users.id))
+      .where(and(
+        isNull(teamChat.chatRoom),
+        or(
+          eq(teamChat.senderId, userId),
+          eq(teamChat.receiverId, userId)
+        )
+      ))
+      .orderBy(desc(teamChat.createdAt));
+
+    // Process room conversations
+    const roomConversations = new Map();
+    roomMessages.forEach(row => {
+      const room = row.team_chat.chatRoom!;
+      if (!roomConversations.has(room)) {
+        roomConversations.set(room, {
+          id: room,
+          type: 'room',
+          name: room === 'general' ? 'Geral' : room === 'support' ? 'Suporte' : room === 'sales' ? 'Vendas' : room,
+          lastMessage: row.team_chat.message,
+          lastMessageTime: row.team_chat.createdAt,
+          unreadCount: 0,
+          senderName: row.users ? `${row.users.firstName} ${row.users.lastName}` : ''
+        });
+      }
+    });
+
+    // Process DM conversations
+    const dmConversations = new Map();
+    dmMessages.forEach(row => {
+      const otherUserId = row.team_chat.senderId === userId ? row.team_chat.receiverId : row.team_chat.senderId;
+      if (otherUserId && !dmConversations.has(otherUserId)) {
+        dmConversations.set(otherUserId, {
+          id: otherUserId,
+          type: 'dm',
+          name: row.users ? `${row.users.firstName} ${row.users.lastName}` : 'Usuário',
+          lastMessage: row.team_chat.message,
+          lastMessageTime: row.team_chat.createdAt,
+          unreadCount: 0,
+          senderName: row.team_chat.senderId === userId ? 'Você' : (row.users ? `${row.users.firstName} ${row.users.lastName}` : ''),
+          profileImageUrl: row.users?.profileImageUrl,
+          role: row.users?.role
+        });
+      }
+    });
+
+    // Combine all conversations
+    const allConversations = [...Array.from(roomConversations.values()), ...Array.from(dmConversations.values())];
+    
+    // Sort by last message time
+    return allConversations.sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
+  }
+
+  // Mark conversation as read
+  async markTeamConversationAsRead(userId: string, conversationId: string, type: string): Promise<void> {
+    if (type === 'room') {
+      await db
+        .update(teamChat)
+        .set({ isRead: true })
+        .where(and(
+          eq(teamChat.chatRoom, conversationId),
+          sql`${teamChat.senderId} != ${userId}` // Don't mark own messages
+        ));
+    } else if (type === 'dm') {
+      await db
+        .update(teamChat)
+        .set({ isRead: true })
+        .where(and(
+          isNull(teamChat.chatRoom),
+          eq(teamChat.receiverId, userId),
+          eq(teamChat.senderId, conversationId)
+        ));
+    }
   }
 }
 

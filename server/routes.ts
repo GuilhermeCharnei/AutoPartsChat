@@ -1554,6 +1554,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get chat list with last activity and unread counts (WhatsApp-style)
+  app.get('/api/team-chat/conversations', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.user.id;
+      const conversations = await storage.getTeamChatConversations(userId);
+      res.json(conversations);
+    } catch (error) {
+      console.error("Error fetching team chat conversations:", error);
+      res.status(500).json({ message: "Failed to fetch conversations" });
+    }
+  });
+
+  // Mark conversation as read
+  app.post('/api/team-chat/conversations/:id/read', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.user.id;
+      const { id: conversationId } = req.params;
+      const { type } = req.body; // 'room' or 'dm'
+      
+      await storage.markTeamConversationAsRead(userId, conversationId, type);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking conversation as read:", error);
+      res.status(500).json({ message: "Failed to mark conversation as read" });
+    }
+  });
+
   return httpServer;
 }
 

@@ -2,10 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Send, Users, Clock, MessageCircle, Home } from 'lucide-react';
+import { Send, Users, MessageCircle, Home, Check, CheckCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -27,20 +26,30 @@ interface ChatMessage {
   message: string;
   messageType: string;
   isRead: boolean;
-  chatRoom: string;
+  chatRoom: string | null;
   createdAt: string;
   senderName: string;
   senderEmail: string;
   senderRole: string;
 }
 
+interface Conversation {
+  id: string;
+  type: 'room' | 'dm';
+  name: string;
+  lastMessage: string;
+  lastMessageTime: string;
+  unreadCount: number;
+  senderName: string;
+  profileImageUrl?: string;
+  role?: string;
+}
+
 export function TeamChatTab() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [newMessage, setNewMessage] = useState('');
-  const [selectedRoom, setSelectedRoom] = useState('general');
-  const [selectedDM, setSelectedDM] = useState<string | null>(null);
-  const [chatMode, setChatMode] = useState<'rooms' | 'dm'>('rooms');
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const chatRooms = [
@@ -49,21 +58,30 @@ export function TeamChatTab() {
     { id: 'sales', label: 'Vendas', description: 'Estratégias e dicas de vendas', icon: '💰' }
   ];
 
+  // Fetch conversations list (WhatsApp-style)
+  const { data: conversations = [], refetch: refetchConversations } = useQuery<Conversation[]>({
+    queryKey: ['/api/team-chat/conversations'],
+    refetchInterval: 3000, // Refresh every 3 seconds
+  });
+
   // Fetch team members
   const { data: teamMembers = [] } = useQuery<TeamMember[]>({
     queryKey: ['/api/team-chat/members'],
   });
 
-  // Fetch chat messages
+  // Fetch chat messages for selected conversation
   const { data: messages = [], refetch: refetchMessages } = useQuery<ChatMessage[]>({
-    queryKey: ['/api/team-chat/messages', chatMode === 'dm' ? `dm-${selectedDM}` : selectedRoom],
+    queryKey: ['/api/team-chat/messages', selectedConversation?.type, selectedConversation?.id],
     queryFn: () => {
-      const url = chatMode === 'dm' 
-        ? `/api/team-chat/messages?receiverId=${selectedDM}&limit=50`
-        : `/api/team-chat/messages?chatRoom=${selectedRoom}&limit=50`;
+      if (!selectedConversation) return Promise.resolve([]);
+      
+      const url = selectedConversation.type === 'dm' 
+        ? `/api/team-chat/messages?receiverId=${selectedConversation.id}&limit=50`
+        : `/api/team-chat/messages?chatRoom=${selectedConversation.id}&limit=50`;
       return fetch(url).then(res => res.json());
     },
-    enabled: chatMode === 'rooms' || (chatMode === 'dm' && selectedDM !== null),
+    enabled: !!selectedConversation,
+    refetchInterval: 5000, // Refresh messages every 5 seconds
   });
 
   // Send message mutation
@@ -74,9 +92,8 @@ export function TeamChatTab() {
     },
     onSuccess: () => {
       setNewMessage('');
-      const queryKey = chatMode === 'dm' ? `dm-${selectedDM}` : selectedRoom;
-      queryClient.invalidateQueries({ queryKey: ['/api/team-chat/messages', queryKey] });
       refetchMessages();
+      refetchConversations(); // Update conversation list
     },
     onError: (error: any) => {
       toast({
@@ -87,29 +104,41 @@ export function TeamChatTab() {
     },
   });
 
-  // Auto-refresh messages every 5 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refetchMessages();
-    }, 5000);
+  // Mark conversation as read mutation
+  const markAsReadMutation = useMutation({
+    mutationFn: async ({ conversationId, type }: { conversationId: string, type: string }) => {
+      const response = await apiRequest('POST', `/api/team-chat/conversations/${conversationId}/read`, { type });
+      return response.json();
+    },
+    onSuccess: () => {
+      refetchConversations();
+    },
+  });
 
-    return () => clearInterval(interval);
-  }, [refetchMessages]);
-
-  // Scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Mark conversation as read when selected
+  useEffect(() => {
+    if (selectedConversation && selectedConversation.unreadCount > 0) {
+      markAsReadMutation.mutate({
+        conversationId: selectedConversation.id,
+        type: selectedConversation.type
+      });
+    }
+  }, [selectedConversation]);
+
   const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !selectedConversation) return;
 
     const messageData = {
       message: newMessage.trim(),
       messageType: 'text',
-      ...(chatMode === 'dm' 
-        ? { receiverId: selectedDM, chatRoom: null }
-        : { chatRoom: selectedRoom, receiverId: null }
+      ...(selectedConversation.type === 'dm' 
+        ? { receiverId: selectedConversation.id, chatRoom: null }
+        : { chatRoom: selectedConversation.id, receiverId: null }
       )
     };
 
@@ -124,10 +153,20 @@ export function TeamChatTab() {
   };
 
   const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    const now = new Date();
+    const messageDate = new Date(timestamp);
+    
+    if (now.toDateString() === messageDate.toDateString()) {
+      return messageDate.toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } else {
+      return messageDate.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit'
+      });
+    }
   };
 
   const formatDate = (timestamp: string) => {
@@ -148,293 +187,331 @@ export function TeamChatTab() {
     }
   };
 
-  const getSelectedMember = () => {
-    return teamMembers.find(m => m.id === selectedDM);
+  const getConversationIcon = (conversation: Conversation) => {
+    if (conversation.type === 'room') {
+      const room = chatRooms.find(r => r.id === conversation.id);
+      return room?.icon || '💬';
+    }
+    return null;
   };
 
-  const getCurrentChatTitle = () => {
-    if (chatMode === 'rooms') {
-      return chatRooms.find(r => r.id === selectedRoom)?.label || 'Geral';
-    }
-    if (selectedDM) {
-      const member = getSelectedMember();
-      return `${member?.firstName} ${member?.lastName}`;
-    }
-    return 'Mensagens Diretas';
-  };
-
-  const getCurrentChatDescription = () => {
-    if (chatMode === 'rooms') {
-      return chatRooms.find(r => r.id === selectedRoom)?.description || '';
-    }
-    if (selectedDM) {
-      const member = getSelectedMember();
-      return `Conversa privada • ${member?.role}`;
-    }
-    return 'Selecione uma pessoa para conversar';
-  };
+  // Add conversations for rooms that don't have messages yet
+  const allConversations = [
+    ...conversations,
+    ...chatRooms
+      .filter(room => !conversations.find(c => c.id === room.id && c.type === 'room'))
+      .map(room => ({
+        id: room.id,
+        type: 'room' as const,
+        name: room.label,
+        lastMessage: 'Nenhuma mensagem ainda',
+        lastMessageTime: new Date().toISOString(),
+        unreadCount: 0,
+        senderName: '',
+      }))
+  ];
 
   return (
-    <div className="h-full flex bg-gray-50">
-      {/* Sidebar */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-        {/* Mode Toggle */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setChatMode('rooms')}
-              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
-                chatMode === 'rooms' 
-                  ? 'bg-white text-gray-900 shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Home className="w-4 h-4" />
-              Salas
-            </button>
-            <button
-              onClick={() => setChatMode('dm')}
-              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
-                chatMode === 'dm' 
-                  ? 'bg-white text-gray-900 shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <MessageCircle className="w-4 h-4" />
-              Diretas
-            </button>
-          </div>
+    <div className="h-full flex bg-white">
+      {/* Conversations List (WhatsApp-style) */}
+      <div className="w-80 border-r border-gray-200 flex flex-col">
+        {/* Header */}
+        <div className="p-4 border-b border-gray-200 bg-gray-50">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <MessageCircle className="w-5 h-5" />
+            Chat da Equipe
+          </h2>
+          <p className="text-sm text-gray-600">
+            {conversations.length} conversas ativas
+          </p>
         </div>
 
-        {/* Chat Rooms or DM List */}
-        {chatMode === 'rooms' ? (
-          <div className="p-4 border-b border-gray-200">
-            <h3 className="font-semibold text-gray-900 mb-3">Salas de Chat</h3>
-            <div className="space-y-1">
-              {chatRooms.map((room) => (
-                <button
-                  key={room.id}
-                  onClick={() => setSelectedRoom(room.id)}
-                  className={`w-full text-left p-3 rounded-lg transition-colors ${
-                    selectedRoom === room.id
-                      ? 'bg-green-50 text-green-700 border border-green-200'
-                      : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  <div className="font-medium text-sm flex items-center gap-2">
-                    <span>{room.icon}</span>
-                    {room.label}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">{room.description}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="p-4 border-b border-gray-200">
-            <h3 className="font-semibold text-gray-900 mb-3">Mensagens Diretas</h3>
-            <div className="space-y-1">
-              {teamMembers
-                .filter(member => member.isActive && member.id !== user?.id)
-                .map((member) => (
-                  <button
-                    key={member.id}
-                    onClick={() => setSelectedDM(member.id)}
-                    className={`w-full text-left p-3 rounded-lg transition-colors flex items-center gap-3 ${
-                      selectedDM === member.id
-                        ? 'bg-green-50 text-green-700 border border-green-200'
-                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    <Avatar className="w-8 h-8">
-                      <AvatarImage src={member.profileImageUrl || ''} />
-                      <AvatarFallback className="text-xs">
-                        {member.firstName?.[0]}{member.lastName?.[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm truncate">
-                        {member.firstName} {member.lastName}
-                      </div>
-                      <Badge className={`text-xs ${getRoleColor(member.role)}`}>
-                        {member.role}
-                      </Badge>
-                    </div>
-                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  </button>
-                ))}
-              {teamMembers.filter(m => m.isActive && m.id !== user?.id).length === 0 && (
-                <div className="text-center py-4 text-gray-500">
-                  <Users className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                  <p className="text-sm">Nenhum membro disponível</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Team Members (Always visible) */}
-        <div className="flex-1 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Users className="w-4 h-4 text-gray-600" />
-            <h3 className="font-semibold text-sm text-gray-900">
-              Equipe Online ({teamMembers.filter(m => m.isActive).length})
-            </h3>
-          </div>
-          <div className="space-y-2">
-            {teamMembers
-              .filter(member => member.isActive)
-              .map((member) => (
-                <div key={member.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
-                  <Avatar className="w-8 h-8">
-                    <AvatarImage src={member.profileImageUrl || ''} />
-                    <AvatarFallback className="text-xs">
-                      {member.firstName?.[0]}{member.lastName?.[0]}
+        {/* Conversations List */}
+        <div className="flex-1 overflow-y-auto">
+          {allConversations
+            .sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime())
+            .map((conversation) => (
+            <button
+              key={`${conversation.type}-${conversation.id}`}
+              onClick={() => setSelectedConversation(conversation)}
+              className={`w-full p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors text-left ${
+                selectedConversation?.id === conversation.id && selectedConversation?.type === conversation.type
+                  ? 'bg-green-50 border-l-4 border-l-green-500'
+                  : ''
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                {/* Avatar */}
+                {conversation.type === 'dm' ? (
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage src={conversation.profileImageUrl || ''} />
+                    <AvatarFallback className="bg-gray-200">
+                      {conversation.name.split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm text-gray-900 truncate">
-                      {member.firstName} {member.lastName}
-                      {user && member.id === user.id && ' (Você)'}
-                    </div>
-                    <Badge className={`text-xs ${getRoleColor(member.role)}`}>
-                      {member.role}
-                    </Badge>
+                ) : (
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-lg">
+                    {getConversationIcon(conversation)}
                   </div>
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                )}
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="font-medium text-gray-900 truncate">
+                      {conversation.name}
+                      {conversation.role && (
+                        <Badge className={`ml-2 text-xs ${getRoleColor(conversation.role)}`}>
+                          {conversation.role}
+                        </Badge>
+                      )}
+                    </h3>
+                    <span className="text-xs text-gray-500">
+                      {formatTime(conversation.lastMessageTime)}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-600 truncate">
+                      {conversation.senderName && (
+                        <span className="font-medium">{conversation.senderName}: </span>
+                      )}
+                      {conversation.lastMessage || 'Nenhuma mensagem ainda'}
+                    </p>
+                    
+                    {conversation.unreadCount > 0 && (
+                      <Badge className="bg-green-500 text-white text-xs min-w-[20px] h-5 rounded-full flex items-center justify-center">
+                        {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-              ))}
+              </div>
+            </button>
+          ))}
+          
+          {allConversations.length === 0 && (
+            <div className="p-8 text-center text-gray-500">
+              <MessageCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p>Nenhuma conversa ainda</p>
+              <p className="text-sm mt-1">Envie uma mensagem para começar</p>
+            </div>
+          )}
+        </div>
+
+        {/* Quick Add Room/DM buttons */}
+        <div className="p-4 border-t border-gray-200 bg-gray-50">
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const generalRoom = allConversations.find(c => c.id === 'general' && c.type === 'room');
+                if (generalRoom) setSelectedConversation(generalRoom);
+              }}
+              className="text-xs"
+            >
+              🏠 Geral
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // Find first available team member for DM
+                const availableMember = teamMembers.find(m => m.id !== user?.id && m.isActive);
+                if (availableMember) {
+                  const dmConversation: Conversation = {
+                    id: availableMember.id,
+                    type: 'dm',
+                    name: `${availableMember.firstName} ${availableMember.lastName}`,
+                    lastMessage: '',
+                    lastMessageTime: new Date().toISOString(),
+                    unreadCount: 0,
+                    senderName: '',
+                    profileImageUrl: availableMember.profileImageUrl,
+                    role: availableMember.role
+                  };
+                  setSelectedConversation(dmConversation);
+                }
+              }}
+              className="text-xs"
+            >
+              💬 Nova DM
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Chat Area */}
       <div className="flex-1 flex flex-col">
-        {/* Chat Header */}
-        <div className="p-4 border-b border-gray-200 bg-gray-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                {chatMode === 'dm' && selectedDM && (
-                  <Avatar className="w-6 h-6">
-                    <AvatarImage src={getSelectedMember()?.profileImageUrl || ''} />
-                    <AvatarFallback className="text-xs">
-                      {getSelectedMember()?.firstName?.[0]}
-                      {getSelectedMember()?.lastName?.[0]}
+        {selectedConversation ? (
+          <>
+            {/* Chat Header */}
+            <div className="p-4 border-b border-gray-200 bg-gray-50">
+              <div className="flex items-center gap-3">
+                {selectedConversation.type === 'dm' ? (
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={selectedConversation.profileImageUrl || ''} />
+                    <AvatarFallback>
+                      {selectedConversation.name.split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
+                ) : (
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-lg">
+                    {getConversationIcon(selectedConversation)}
+                  </div>
                 )}
-                {getCurrentChatTitle()}
-              </h2>
-              <p className="text-sm text-gray-600">
-                {getCurrentChatDescription()}
-              </p>
+                
+                <div>
+                  <h2 className="font-semibold text-gray-900">
+                    {selectedConversation.name}
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    {selectedConversation.type === 'dm' 
+                      ? `${selectedConversation.role} • Online`
+                      : chatRooms.find(r => r.id === selectedConversation.id)?.description || 'Sala de chat'
+                    }
+                  </p>
+                </div>
+              </div>
             </div>
-            <Badge variant="secondary">
-              {messages.length} mensagens
-            </Badge>
-          </div>
-        </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4" data-testid="chat-messages">
-          {(chatMode === 'dm' && !selectedDM) ? (
-            <div className="text-center py-12 text-gray-500">
-              <MessageCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <h3 className="font-semibold mb-2">Mensagens Diretas</h3>
-              <p>Selecione uma pessoa da lista para iniciar uma conversa privada.</p>
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <h3 className="font-semibold mb-2">Nenhuma mensagem ainda</h3>
-              <p>Seja o primeiro a iniciar a conversa!</p>
-            </div>
-          ) : (
-            messages.map((message, index) => {
-              const isCurrentUser = user && message.senderId === user.id;
-              const showDate = index === 0 || 
-                formatDate(messages[index - 1].createdAt) !== formatDate(message.createdAt);
-              
-              return (
-                <div key={message.id}>
-                  {showDate && (
-                    <div className="text-center py-2">
-                      <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                        {formatDate(message.createdAt)}
-                      </span>
-                    </div>
-                  )}
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50" data-testid="chat-messages">
+              {messages.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <MessageCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <h3 className="font-semibold mb-2">Nenhuma mensagem ainda</h3>
+                  <p>Seja o primeiro a iniciar a conversa!</p>
+                </div>
+              ) : (
+                messages.map((message, index) => {
+                  const isCurrentUser = user && message.senderId === user.id;
+                  const showDate = index === 0 || 
+                    formatDate(messages[index - 1].createdAt) !== formatDate(message.createdAt);
                   
-                  <div className={`flex gap-3 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
-                    {!isCurrentUser && (
-                      <Avatar className="w-8 h-8">
-                        <AvatarFallback className="text-xs">
-                          {message.senderName.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
-                    
-                    <div className={`flex-1 max-w-md ${isCurrentUser ? 'text-right' : ''}`}>
-                      {!isCurrentUser && (
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm text-gray-900">
-                            {message.senderName}
+                  return (
+                    <div key={message.id}>
+                      {showDate && (
+                        <div className="text-center py-2">
+                          <span className="text-xs text-gray-500 bg-white px-3 py-1 rounded-full shadow-sm">
+                            {formatDate(message.createdAt)}
                           </span>
-                          <Badge className={`text-xs ${getRoleColor(message.senderRole)}`}>
-                            {message.senderRole}
-                          </Badge>
                         </div>
                       )}
                       
-                      <div
-                        className={`inline-block px-4 py-2 rounded-lg ${
-                          isCurrentUser
-                            ? 'bg-green-500 text-white'
-                            : 'bg-white border border-gray-200 text-gray-900'
-                        }`}
-                      >
-                        <p className="text-sm whitespace-pre-wrap">{message.message}</p>
-                        <div
-                          className={`text-xs mt-1 ${
-                            isCurrentUser ? 'text-green-100' : 'text-gray-500'
-                          }`}
-                        >
-                          {formatTime(message.createdAt)}
+                      <div className={`flex gap-3 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
+                        {!isCurrentUser && (
+                          <Avatar className="w-8 h-8">
+                            <AvatarFallback className="text-xs bg-gray-200">
+                              {message.senderName.split(' ').map(n => n[0]).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
+                        
+                        <div className={`max-w-md ${isCurrentUser ? 'text-right' : ''}`}>
+                          {!isCurrentUser && selectedConversation.type === 'room' && (
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium text-sm text-gray-900">
+                                {message.senderName}
+                              </span>
+                              <Badge className={`text-xs ${getRoleColor(message.senderRole)}`}>
+                                {message.senderRole}
+                              </Badge>
+                            </div>
+                          )}
+                          
+                          <div
+                            className={`inline-block px-4 py-2 rounded-2xl shadow-sm ${
+                              isCurrentUser
+                                ? 'bg-green-500 text-white rounded-br-md'
+                                : 'bg-white text-gray-900 rounded-bl-md'
+                            }`}
+                          >
+                            <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                            <div
+                              className={`text-xs mt-1 flex items-center gap-1 ${
+                                isCurrentUser ? 'text-green-100 justify-end' : 'text-gray-500'
+                              }`}
+                            >
+                              <span>{formatTime(message.createdAt)}</span>
+                              {isCurrentUser && (
+                                message.isRead ? <CheckCheck className="w-3 h-3" /> : <Check className="w-3 h-3" />
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Message Input */}
-        {(chatMode === 'rooms' || (chatMode === 'dm' && selectedDM)) && (
-          <div className="p-4 border-t border-gray-200 bg-white">
-            <div className="flex gap-3">
-              <Input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder="Digite sua mensagem..."
-                className="flex-1"
-                data-testid="input-message"
-              />
-              <Button
-                onClick={handleSendMessage}
-                disabled={!newMessage.trim() || sendMessageMutation.isPending}
-                data-testid="button-send"
-              >
-                <Send className="w-4 h-4" />
-              </Button>
+                  );
+                })
+              )}
+              <div ref={messagesEndRef} />
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Pressione Enter para enviar, Shift+Enter para nova linha
-            </p>
+
+            {/* Message Input */}
+            <div className="p-4 border-t border-gray-200 bg-white">
+              <div className="flex gap-3">
+                <Input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder={`Mensagem para ${selectedConversation.name}...`}
+                  className="flex-1"
+                  data-testid="input-message"
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!newMessage.trim() || sendMessageMutation.isPending}
+                  className="bg-green-500 hover:bg-green-600"
+                  data-testid="button-send"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : (
+          /* No conversation selected */
+          <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <div className="text-center text-gray-500 max-w-md">
+              <MessageCircle className="w-20 h-20 mx-auto mb-6 text-gray-300" />
+              <h2 className="text-2xl font-semibold mb-4 text-gray-700">Chat da Equipe</h2>
+              <p className="text-lg mb-6">Selecione uma conversa para começar a trocar mensagens</p>
+              <div className="grid grid-cols-2 gap-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const generalRoom = allConversations.find(c => c.id === 'general' && c.type === 'room');
+                    if (generalRoom) setSelectedConversation(generalRoom);
+                  }}
+                >
+                  🏠 Chat Geral
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const availableMember = teamMembers.find(m => m.id !== user?.id && m.isActive);
+                    if (availableMember) {
+                      const dmConversation: Conversation = {
+                        id: availableMember.id,
+                        type: 'dm',
+                        name: `${availableMember.firstName} ${availableMember.lastName}`,
+                        lastMessage: '',
+                        lastMessageTime: new Date().toISOString(),
+                        unreadCount: 0,
+                        senderName: '',
+                        profileImageUrl: availableMember.profileImageUrl,
+                        role: availableMember.role
+                      };
+                      setSelectedConversation(dmConversation);
+                    }
+                  }}
+                >
+                  💬 Mensagem Direta
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>
